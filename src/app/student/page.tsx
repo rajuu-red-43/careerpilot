@@ -1,10 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useApp } from '../../context/AppContext';
 import { mockRoadmaps, sampleSkillGaps } from '../../data/mockRoadmaps';
 import { SkillGapItem } from '../../lib/types';
 import DataHealthBadge from '../../components/DataHealthBadge';
+import PrivacyBadge from '../../components/PrivacyBadge';
+import LockablePortfolioSection from '../../components/LockablePortfolioSection';
 import {
   GraduationCap,
   TrendingUp,
@@ -21,6 +24,8 @@ import {
   Calendar,
   Layers,
   Award,
+  ExternalLink,
+  Briefcase,
 } from 'lucide-react';
 
 export default function StudentDashboard() {
@@ -161,7 +166,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* Section 1: Skill Roadmap & Future Demand Prediction (Requirement 1) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div id="skill-roadmap" className="grid grid-cols-1 lg:grid-cols-3 gap-6 scroll-mt-20">
         {/* Academic Year Roadmap (1st to 4th year) */}
         <div className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
@@ -319,7 +324,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* Section 2: Skill Gap Detector & Checklist (Requirement 2) */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-5">
+      <div id="skill-gap" className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-5 scroll-mt-20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div>
             <div className="flex items-center gap-2">
@@ -382,33 +387,65 @@ export default function StudentDashboard() {
             {gapChecklist.map(item => (
               <div
                 key={item.skill}
-                onClick={() => toggleGapSkill(item.skill)}
-                className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                className={`p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 ${
                   item.acquired
                     ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'
                     : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-300'
                 }`}
               >
-                <div className="mt-0.5">
-                  {item.acquired ? (
-                    <CheckSquare className="w-4 h-4 text-emerald-400" />
-                  ) : (
-                    <Square className="w-4 h-4 text-slate-500" />
-                  )}
+                <div
+                  onClick={() => toggleGapSkill(item.skill)}
+                  className="flex items-start gap-3 cursor-pointer"
+                >
+                  <div className="mt-0.5">
+                    {item.acquired ? (
+                      <CheckSquare className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <Square className="w-4 h-4 text-slate-500" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-bold ${item.acquired ? 'line-through text-slate-400' : 'text-white'}`}>
+                        {item.skill}
+                      </span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                        ~{item.estimatedWeeks} wks
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 flex items-center gap-1">
+                      <BookOpen className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <span className="truncate">{item.resourceTitle}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs font-bold ${item.acquired ? 'line-through text-slate-400' : 'text-white'}`}>
-                      {item.skill}
-                    </span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">
-                      ~{item.estimatedWeeks} wks
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-slate-400 flex items-center gap-1">
-                    <BookOpen className="w-3 h-3 text-cyan-400" />
-                    <span>{item.resourceTitle}</span>
-                  </div>
+
+                {/* Free Course Link & Internship Shortcut */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs">
+                  {item.resourceLink ? (
+                    <a
+                      href={item.resourceLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 text-[11px] text-cyan-400 hover:text-cyan-300 font-medium hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>Free Course / Guide</span>
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-slate-500">Self-Paced Guide</span>
+                  )}
+
+                  <Link
+                    href={`/internships?skill=${encodeURIComponent(item.skill)}`}
+                    onClick={e => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 text-[11px] text-indigo-400 hover:text-indigo-300 font-medium bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors"
+                  >
+                    <Briefcase className="w-3 h-3" />
+                    <span>Find Internships</span>
+                    <ArrowRight className="w-2.5 h-2.5" />
+                  </Link>
                 </div>
               </div>
             ))}
@@ -417,7 +454,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* Section 3: Career Path Recommendations (Requirement 3) */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-4">
+      <div id="career-path" className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-4 scroll-mt-20">
         <div className="space-y-0.5">
           <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
             <Building className="w-4 h-4 text-purple-400" />
@@ -474,6 +511,14 @@ export default function StudentDashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Feature 10: Student Lockable Portfolio Templates & Cryptographic Verification */}
+      <LockablePortfolioSection />
+
+      {/* Privacy-First Local Enclave Guarantee Badge */}
+      <div className="pt-2">
+        <PrivacyBadge />
       </div>
     </div>
   );

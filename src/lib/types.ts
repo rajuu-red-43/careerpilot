@@ -1,4 +1,4 @@
-export type UserRole = 'college_student' | 'job_seeker' | 'company_recruiter';
+export type UserRole = 'college_student' | 'job_seeker' | 'company_recruiter' | 'admin';
 
 export interface CompanyStability {
   score: number; // 0 - 100
@@ -24,6 +24,15 @@ export interface JobMatchBreakdown {
   rationale: string;
 }
 
+export interface SalaryMarketBenchmark {
+  marketAvgSalary: string;
+  comparisonPercent: number; // e.g. +8 (8% above average) or -5
+  comparisonText: string; // e.g. "8% above Bangalore Tech Market Avg"
+  benefits: string[];
+  equityText?: string;
+  bonusText?: string;
+}
+
 export interface JobPosting {
   id: string;
   title: string;
@@ -32,9 +41,12 @@ export interface JobPosting {
   location: string;
   workplaceType: 'Remote' | 'Hybrid' | 'On-site';
   salaryRange: string;
+  salaryBenchmark?: SalaryMarketBenchmark;
   experienceLevel: 'Entry' | 'Mid' | 'Senior' | 'Internship';
   department: string;
   postedDaysAgo: number;
+  deadlineDate?: string;
+  deadlineDaysLeft?: number;
   description: string;
   requiredSkills: string[];
   preferredSkills: string[];
@@ -45,6 +57,7 @@ export interface JobPosting {
   duplicateReason?: string;
   isSuspiciousFake?: boolean;
   fakeReason?: string;
+  trustScore?: number; // 0 - 100
   verifiedCompany: boolean;
 }
 
@@ -61,14 +74,21 @@ export interface Application {
   company: string;
   location: string;
   appliedDate: string;
+  deadlineDate?: string;
+  deadlineHoursLeft?: number;
   status: 'Pending Approval' | 'Applied' | 'Screening' | 'Interview' | 'Offered' | 'Rejected';
   fitScore: number;
+  fitConfidenceRange?: string; // e.g. "88% - 93% (High Confidence)"
+  matchBucket: 'High' | 'Medium' | 'Low';
   tailoredKeywordsAdded: string[];
   tailoredBulletPoints: TailoredBulletPoint[];
   tailoredCoverLetter: string;
   humanApproved: boolean;
   followUpDate: string;
   notes?: string;
+  rejectionReason?: string;
+  rejectionCategory?: 'Skill Gap' | 'Experience Level' | 'System Design' | 'Cultural Fit / Other';
+  rejectionActionAdvice?: string;
 }
 
 export interface SkillGapItem {
@@ -76,7 +96,9 @@ export interface SkillGapItem {
   category: 'Core' | 'Recommended' | 'Bonus';
   estimatedWeeks: number;
   resourceTitle: string;
-  resourceType: 'Interactive Lab' | 'Doc Guide' | 'Project Spec';
+  resourceType: 'Interactive Lab' | 'Doc Guide' | 'Project Spec' | 'Free Course' | 'Internship Opportunity';
+  resourceLink?: string;
+  internshipOpportunityId?: string;
   acquired: boolean;
 }
 
@@ -120,6 +142,8 @@ export interface CandidateProfile {
   dataHealthScore: number;
   dataHealthChecks: { label: string; passed: boolean; tip: string }[];
   currentProgressStage: 'Skill Building' | 'Resume Ready' | 'Applying' | 'Interview' | 'Offered';
+  interviewReadinessScore?: number;
+  trialDaysLeft?: number;
 }
 
 export interface AutomationLog {
@@ -129,4 +153,73 @@ export interface AutomationLog {
   title: string;
   description: string;
   status: 'success' | 'paused_checkpoint' | 'running';
+}
+
+export interface PortfolioProject {
+  id: string;
+  title: string;
+  tagline: string;
+  description: string;
+  role: string;
+  techStack: string[];
+  liveUrl?: string;
+  githubUrl?: string;
+  quantifiableImpact: string;
+  pitchRecording?: string;
+  pitchText?: string;
+  pitchScore?: number;
+  pitchClarityScore?: number;
+  pitchDepthScore?: number;
+  pitchFeedback?: string;
+  createdAt: string;
+}
+
+export interface LockablePortfolio {
+  id: string;
+  ownerName: string;
+  ownerRole: string;
+  isLocked: boolean;
+  lockedHash?: string;
+  lockedTimestamp?: string;
+  verificationId?: string;
+  projects: PortfolioProject[];
+}
+
+export interface RejectionFeedback {
+  id: string;
+  applicationId: string;
+  jobTitle: string;
+  company: string;
+  category: 'Skill Gap' | 'Experience Level' | 'System Design' | 'Cultural Fit / Other';
+  notes: string;
+  suggestedAction: string;
+  actionUrl: string;
+  date: string;
+}
+
+export interface InternshipPosting {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  workplaceType: 'Remote' | 'Hybrid' | 'On-site';
+  stipend: string;
+  duration: string;
+  targetSkills: string[];
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  spotsLeft: number;
+  description: string;
+  deadlineDate: string;
+  mentorName: string;
+  mentorTitle: string;
+}
+
+export interface PitchEvaluationResult {
+  score: number; // 0 - 100
+  clarityScore: number;
+  technicalDepthScore: number;
+  impactScore: number;
+  feedback: string;
+  strengths: string[];
+  improvementSuggestions: string[];
 }

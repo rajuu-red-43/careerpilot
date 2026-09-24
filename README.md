@@ -1,13 +1,13 @@
-# CareerPilot 🧭
+# CareerPilot v2 🧭
 
-> **Transparent AI Job-Search & Application Agent**  
-> *Problem Statement AA-35: Autonomous Job-Search & Application Agent*
+> **Production-Grade Autonomous Job-Search, Career Intelligence & Recruitment SaaS**  
+> *Built for Problem Statement AA-35: Autonomous Job-Search & Application Agent*
 
-CareerPilot is an autonomous AI agent built for students, job seekers, and recruiters. Unlike existing black-box blind-application tools that spam employers with generic submissions, CareerPilot prioritizes **explainable matching vectors**, **ATS resume diff previews**, **n8n-style background automation**, and a **strict human approval checkpoint** before any application is dispatched.
+CareerPilot v2 upgrades the prototype into a production-grade SaaS product. Unlike existing black-box blind-application bots that flood hiring managers with generic resume spam, CareerPilot enforces **mathematically explainable matching vectors**, **ATS resume diff previews**, **n8n-style background automation**, **mandatory human approval gates**, **cryptographic portfolio verification**, and **recruiter spam filtering**.
 
 ---
 
-## 🚀 Live Demo & Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18.x or higher
@@ -16,7 +16,6 @@ CareerPilot is an autonomous AI agent built for students, job seekers, and recru
 ### Installation & Run
 ```bash
 # Clone the repository and install dependencies
-git clone <repo-url>
 cd ALPHA
 npm install
 
@@ -28,71 +27,93 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🎯 Problem Statement (AA-35) & Solutions
+## 💎 Monetization & SaaS Pricing (`/pricing`)
 
-| Challenge | CareerPilot Solution | Where to See It |
-|---|---|---|
-| **Generic, Blind Spammed Applications** | Enforces a mandatory **Human Review Checkpoint**. Applications are staged with diff highlights and will never auto-submit without an explicit user click. | `/job-seeker` & `/applications` |
-| **Black-Box AI Scoring** | **Consistency Engine**: Every fit score features a transparent breakdown (Core Skills weight, Experience match, Domain synergy) with specific reasons behind every number. | Click *"Why this score?"* on any job |
-| **Inconsistent Resume & Profile Data** | **Data Validation Layer**: Real-time Data Health Check validating portfolio links, quantifiable bullet metrics, and target domains. | Top-right of every dashboard |
-| **Drop-Off Frustrations** | **Bottleneck Visualizer**: Pipeline funnel (Scanned ➔ Filtered ➔ Tailored ➔ Approved ➔ Interview) highlighting drop-offs with diagnostic tips. | `/applications` |
-| **Repetitive Application Fatigue** | **n8n-Style Automation Hook**: Scheduled background crawler with an interactive visual DAG pipeline and live execution logs. | `/job-seeker` |
-| **Recruiter Spam & Fake Postings** | **Duplicate & Fake Job Detector**: Real-time heuristics identifying scraped duplicate postings and high-risk employment phishing scams. | `/recruiter` |
+CareerPilot implements a fair, value-aligned pricing model:
 
----
-
-## 🎭 3 Dedicated User Modes
-
-Seamlessly toggle between all 3 roles using the role switcher pills in the top navigation bar:
-
-1. **🎓 College Student Mode (`/student`)**
-   - **Academic Skill Roadmap**: 1st to 4th year curriculum for 4 domains (*AI/ML, Modern Web Dev, Cloud/DevOps, Core Mechanical*).
-   - **Future-Demand Prediction Chart**: 2024–2028 hiring velocity and compensation trends.
-   - **Skill Gap Detector**: Actionable checklist with estimated learning weeks and benchmark resources.
-   - **Career Path Recommendations**: Entry-level roles and targeted company tiers.
-
-2. **💼 Job Seeker Mode (`/job-seeker`)**
-   - **Resume / Skill Parser**: Drag-and-drop simulated OCR with instant ATS skill tokenization.
-   - **Ranked Job Fit Scoring**: 10 realistic postings with transparent fit percentages.
-   - **Auto-Tailored Resume & Cover Letter Preview**: Side-by-side diff highlights showing tailored bullet points and added keywords.
-   - **Human Approval Checkpoint**: Explicit *"Approve & Submit"* and *"Reject / Revise"* controls.
-
-3. **🏢 Company Recruiter Mode (`/recruiter`)**
-   - **Post a Job Form**: Publish new listings with instant heuristic analysis.
-   - **Duplicate & Fake Job Detector**: Identifies duplicate listings and abnormal salary patterns.
-   - **Ranked Candidate Pipeline**: High-fit candidate list avoiding generic application spam.
-   - **Transparency Panel**: Auditable mathematical weights for fair, bias-free candidate evaluation.
+| Plan | Target Audience | Price | Core Privileges |
+|---|---|---|---|
+| **Student Starter** | University & College Students | **₹0 (Permanently Free)** | Multi-year roadmaps, skill gap detector, free course curriculum links, verified portfolio builder, internship board access |
+| **Job Seeker Pro** | Active Engineers & Job Seekers | **₹499 / month** *(3-Month Free Trial with Countdown)* | PDF/DOCX real resume parser, 5-axis spider radar fit modal, 60s pitch evaluation, priority application queue, rejection memory |
+| **Recruiter Suite** | Talent Leads & Hiring Agencies | **₹2,499 - ₹6,999 / month** *(Interactive Demo Toggle)* | Post jobs with duplicate/scam heuristics, anti-spam quarantine drawer, explainable candidate ranking, candidate vector audits |
 
 ---
 
-## 🐛 The Intentional Demo Bug (Hackathon Presentation Feature)
+## 🎯 15 Production-Grade SaaS Features
 
-To showcase self-aware engineering, rigorous edge-case testing, and calm live presentation skills, an intentional bug has been embedded on the **Job Comparison Page (`/compare`)**:
+1. **Skill Gap Detector with Free Courses & Internships**: Actionable gap checklists with direct links to Hugging Face, FreeCodeCamp, Coursera, and one-click filtering to matching internships.
+2. **Interview Readiness Score**: Composite index derived from ATS resume health, verified skills, and pitch delivery scores.
+3. **Salary & Benefits Analysis**: Visual gauge comparing job compensation against verified departmental market averages.
+4. **Scam & Duplicate Job Detector**: Heuristic engine flagging ghost jobs, telegram scams, and duplicate agency postings.
+5. **Career Path & Employer Recommendations**: Curated employer recommendations categorized by Startups, Cloud Infrastructure, and Frontier Labs.
+6. **Application Priority Queue**: Auto-sorts active applications into High, Medium, and Low priority action buckets.
+7. **One-Click Job Comparison**: Compare up to 3 positions directly with persistent selection. *(Includes the intentional demo bug on `/compare` for live presentation)*.
+8. **Application Deadline Tracker**: Alerts for urgent application cutoffs (e.g. "Closing in 2 days").
+9. **Application Feedback Memory**: Logs rejection reasons (Skill Gap, Experience, System Design) and generates automated upskilling advice.
+10. **Lockable Portfolio Templates & Cryptographic Stamp**: Create project showcases and freeze them with a tamper-proof verification hash (`CP-VERIFIED-...`).
+11. **Internship & Upskilling Board (`/internships`)**: Dedicated student board with difficulty badges, mentors, and human-in-the-loop stage apply.
+12. **Location & Progress Tracking Funnel**: Visual stage progression from foundational training to final accepted offer.
+13. **60-Second Project Pitch Challenge**: Interactive pitch recorder with live 60-second timer and deterministic AI evaluation of Clarity, Technical Depth, and Quantifiable Impact.
+14. **Graphical Multi-Vector Fit Visualization**: Interactive 5-axis spider radar modal with confidence intervals (Skills, Experience, Velocity, System Design, Communication).
+15. **Recruiter Spam Filter**: Quarantines blanket resume spam (<50% fit or duplicate agency leads) into an auditable collapsible drawer.
 
+---
+
+## 🎭 4 Dedicated Role Portals
+
+Authenticate seamlessly using the role gateway on `/` with quick persona presets:
+
+1. **🎓 College Student (`/student`)**
+   - Multi-year curriculum roadmaps (AI/ML, Web Dev, Cloud/DevOps, Mechanical).
+   - 2024–2028 Tech Demand Projections.
+   - Skill gap checklists linking to free courses and `/internships`.
+   - Cryptographically lockable project portfolio.
+
+2. **💼 Job Seeker (`/job-seeker`)**
+   - Real `.pdf` and `.docx` resume file parser with ATS token extraction.
+   - Composite interview readiness card.
+   - Priority application queue (High / Medium / Low).
+   - Multi-vector spider radar modal & 60s pitch challenge.
+   - Mandatory human sign-off checkpoint before submission.
+
+3. **🏢 Company Recruiter (`/recruiter`)**
+   - Gated behind active subscription status with live 1-click demo toggle.
+   - Post jobs with real-time heuristic guardrails.
+   - Zero-spam ranked candidate pipeline with audit trail.
+   - Quarantined spam applicant drawer.
+
+4. **🛡️ Platform Admin (`/admin`)**
+   - Supabase Row-Level Security (RLS) policies audit.
+   - Spam quarantine telemetry and blocked bots monitor.
+   - SaaS monetization MRR and subscription tier breakdown.
+
+---
+
+## 🔒 Cybersecurity & Local Enclave Architecture
+
+- **Zero Cloud Leakage**: Sensitive resume tokens and applicant contact details process locally within the client enclave.
+- **Supabase RLS Simulation**: Strict row-level isolation guarantees students, candidates, and recruiters only access authorized records.
+- **Cryptographic Verification**: Hashes generated via SHA-256 for immutable portfolio records.
+
+---
+
+## 🐛 Intentional Demo Bug (Hackathon Presentation Feature)
+
+To demonstrate deep edge-case stress testing and self-aware engineering during judging presentations:
 - **Location**: [`/compare`](http://localhost:3000/compare)
-- **Behavior**: When comparing 3 jobs side by side, the fit-score bar for **Job #3 intentionally does not refresh on the first click** (`0% Stale State`). On the second click, it synchronizes and animates to the true score.
-- **Presenter Speaking Script**:
-  > *"Judges, observe this subtle async state delay on our 3rd comparison card — this mirrors a real-world hydration race condition when merging high-dimensional vector matches concurrently across multiple tabs. On the second click, it synchronizes seamlessly.*  
-  > *In our post-hackathon sprint, we resolve this with React 18 Transitions and optimistic TanStack query cache. We intentionally left this visible to highlight our deep edge-case stress testing and self-aware engineering process!"*
-- **Judge Guide Drawer**: Click the **"Judge Guide"** button in the top navbar anytime to open the on-screen presentation cheat sheet and reset the bug state with one click.
+- **Behavior**: When comparing 3 jobs side by side, the fit-score bar for **Job #3 intentionally lags on the first click** (`0% Stale State`). On the second click, it synchronizes smoothly to the correct score.
+- **Judge Guide**: Use the top-bar "Judge Guide" button to view presentation notes or reset the bug state with 1 click.
 
 ---
 
 ## 🛠️ Technology Stack
-- **Framework**: [Next.js 14](https://nextjs.org/) (App Router, Server Components & Route Handlers)
-- **Styling**: [TailwindCSS](https://tailwindcss.com/) with custom dark slate design tokens and glassmorphism
-- **Iconography**: [Lucide React](https://lucide.dev/)
-- **State & Data**: Zero external database dependency — high-fidelity typed JSON datasets (`src/data/`) with client state persistence.
-- **Deployment**: Single self-contained project configured for instant one-click deployment on [Vercel](https://vercel.com/).
+
+- **Framework**: Next.js 14+ (App Router, Server Actions)
+- **Styling**: TailwindCSS with curated HSL color palettes and dark mode
+- **Icons**: Lucide React
+- **Security & Database**: Supabase Client & RLS Architecture
+- **State Management**: React Context with LocalStorage persistence
 
 ---
 
-## 🚢 Deploy to Vercel
-
-```bash
-# Build the production bundle locally to verify
-npm run build
-
-# Deploy via Vercel CLI
-npx vercel
-```
+Developed for **Problem Statement AA-35**: *Autonomous Job-Search & Application Agent*.

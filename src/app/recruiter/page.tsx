@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useApp } from '../../context/AppContext';
 import { JobPosting } from '../../lib/types';
 import DataHealthBadge from '../../components/DataHealthBadge';
+import RecruiterSpamSection from '../../components/RecruiterSpamSection';
+import PrivacyBadge from '../../components/PrivacyBadge';
 import {
   Building2,
   PlusCircle,
@@ -19,10 +22,22 @@ import {
   HelpCircle,
   FileText,
   Search,
+  Crown,
+  Radar,
+  ArrowRight,
+  Lock,
 } from 'lucide-react';
 
 export default function RecruiterDashboard() {
-  const { profile, jobs, addJobPosting, showToast } = useApp();
+  const {
+    profile,
+    jobs,
+    addJobPosting,
+    showToast,
+    isRecruiterSubscribed,
+    toggleRecruiterSubscription,
+    setGraphicalFitJob,
+  } = useApp();
 
   // Job creation form state
   const [title, setTitle] = useState('');
@@ -195,10 +210,76 @@ export default function RecruiterDashboard() {
         </div>
       </div>
 
+      {/* Recruiter Monetization Banner (Feature 2) */}
+      <div
+        className={`p-4 rounded-2xl border transition-all ${
+          isRecruiterSubscribed
+            ? 'bg-purple-950/20 border-purple-500/30 text-purple-200'
+            : 'bg-amber-950/25 border-amber-500/30 text-amber-200'
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div
+              className={`p-2.5 rounded-xl border ${
+                isRecruiterSubscribed
+                  ? 'bg-purple-500/20 border-purple-500/30 text-purple-300'
+                  : 'bg-amber-500/20 border-amber-500/30 text-amber-300'
+              }`}
+            >
+              <Crown className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white text-sm">
+                  {isRecruiterSubscribed
+                    ? 'Recruiter Growth Tier Active (₹6,999/mo)'
+                    : 'Recruiter Tier Inactive / Gated (₹2,499 - ₹6,999/mo)'}
+                </span>
+                <span
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${
+                    isRecruiterSubscribed
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                  }`}
+                >
+                  {isRecruiterSubscribed ? 'Active Paid SaaS' : 'Subscription Required'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isRecruiterSubscribed
+                  ? 'Unlimited candidate match vectors, real-time spam shield, and automated quarantine drawer active.'
+                  : 'Enterprise talent intelligence features require an active recruiter seat subscription.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/pricing"
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1"
+            >
+              <span>View Pricing Tiers</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <button
+              onClick={toggleRecruiterSubscription}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                isRecruiterSubscribed
+                  ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30'
+                  : 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-600/20'
+              }`}
+            >
+              {isRecruiterSubscribed ? 'Simulate Unsubscribed' : 'Activate Demo Subscription'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Grid: Post a Job Form (Requirement 1 & 2) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Post a Job Form */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-5">
+        <div id="post-job" className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-5 scroll-mt-20">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
@@ -391,7 +472,7 @@ export default function RecruiterDashboard() {
       {/* Applicant Pipeline & Transparency Panel (Requirement 3 & 4) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Applicant Pipeline List (Requirement 3) */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-4">
+        <div id="applicant-pipeline" className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-4 scroll-mt-20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
             <div>
               <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
@@ -446,6 +527,19 @@ export default function RecruiterDashboard() {
                     >
                       Audit Score
                     </button>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (jobs && jobs.length > 0) {
+                          setGraphicalFitJob(jobs[0]);
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 transition-colors flex items-center gap-1"
+                      title="View 5-Axis Spider Radar Fit"
+                    >
+                      <Radar className="w-3.5 h-3.5" />
+                      <span>Fit Radar</span>
+                    </button>
                   </div>
                 </div>
               );
@@ -454,7 +548,7 @@ export default function RecruiterDashboard() {
         </div>
 
         {/* Transparency Panel (Requirement 4) */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-4 flex flex-col justify-between">
+        <div id="transparency-panel" className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 backdrop-blur shadow-sm space-y-4 flex flex-col justify-between scroll-mt-20">
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
@@ -546,6 +640,14 @@ export default function RecruiterDashboard() {
             <strong>Recruiter Trust Shield:</strong> Eliminates black-box screening bias by providing auditable scoring weights.
           </div>
         </div>
+      </div>
+
+      {/* Feature 15: Recruiter Spam Quarantined Drawer */}
+      <RecruiterSpamSection />
+
+      {/* Local Enclave Privacy Badge */}
+      <div className="pt-2">
+        <PrivacyBadge />
       </div>
     </div>
   );

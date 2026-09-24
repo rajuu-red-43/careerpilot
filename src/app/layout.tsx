@@ -5,6 +5,9 @@ import { AppProvider } from '../context/AppContext';
 import Navbar from '../components/Navbar';
 import Toast from '../components/Toast';
 import JudgeGuideModal from '../components/JudgeGuideModal';
+import GraphicalFitModal from '../components/GraphicalFitModal';
+import PitchChallengeModal from '../components/PitchChallengeModal';
+import RejectionFeedbackModal from '../components/RejectionFeedbackModal';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -17,9 +20,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'CareerPilot | Transparent AI Job-Search & Application Agent (AA-35)',
+  title: 'CareerPilot v2 | Production AI Job-Search & Talent Agent (AA-35)',
   description:
-    'Autonomous AI job agent for students, job seekers, and recruiters with zero black-box scoring, human-in-the-loop review checkpoints, and n8n workflow integration.',
+    'Production-grade transparent AI job agent for students, job seekers, and recruiters with lockable portfolios, 60s pitch trainer, zero black-box scoring, and human-in-the-loop review.',
 };
 
 export default function RootLayout({
@@ -35,6 +38,9 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <Toast />
           <JudgeGuideModal />
+          <GraphicalFitModal />
+          <PitchChallengeModal />
+          <RejectionFeedbackModal />
         </AppProvider>
       </body>
     </html>
