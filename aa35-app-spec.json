@@ -1,0 +1,93 @@
+{
+  "project_name": "CareerPilot",
+  "tagline": "Transparent AI job-search agent for students, job seekers, and companies",
+  "problem_statement": "AA-35: Autonomous Job-Search & Application Agent — build a personal agent that scans job postings matching a candidate's resume/skills, ranks openings by fit, tailors resume/cover letter per posting, and submits applications with a human review checkpoint.",
+  "tech_stack": {
+    "frontend": "Next.js 14 (App Router) + TailwindCSS",
+    "backend": "Next.js API routes (mock JSON data for demo, no real DB needed)",
+    "auth": "Simple role-based login (mocked, 3 roles, no real password check needed for demo)",
+    "deployment": "Vercel (free tier, GitHub auto-deploy)",
+    "notes": "Keep everything in ONE Next.js project so it deploys to Vercel in one click. Use mock/sample JSON data files instead of a real database for the hackathon demo."
+  },
+  "user_modes": [
+    {
+      "role": "college_student",
+      "login_label": "Student Login",
+      "dashboard_sections": [
+        "Skill Roadmap & Future Prediction — pick a target domain (e.g. AI/ML, Web Dev, Core Mechanical), show required skills by year (1st to final year), and a simple future-demand prediction chart for that domain",
+        "Skill Gap Detector — upload/enter current skills, compare against target-role skill list, show missing skills as a checklist",
+        "Career Path Recommendation — suggested roles/companies based on chosen domain and current skill level",
+        "Progress Tracker — shows student's learning/application progress as stages with location/status labels (e.g. Skill Building -> Resume Ready -> Applying -> Interview)"
+      ]
+    },
+    {
+      "role": "job_seeker",
+      "login_label": "Job Seeker Login",
+      "dashboard_sections": [
+        "Resume/Skill Parser — upload resume, extract skills (mocked parsing result)",
+        "Job Fit Scoring — list of sample job postings, each with a % fit score AND an expandable 'why this score' breakdown (matched skills vs missing skills) for transparency",
+        "Auto-Tailored Resume/Cover Letter Preview — per job, show a tailored preview with a diff-style highlight of what changed",
+        "Human Approval Checkpoint — explicit Approve / Reject buttons before any 'submission' happens; nothing auto-submits without this click",
+        "Job Comparison View — select 2-3 jobs side by side, compare on fit score, company stability/job-security signal, growth potential",
+        "Application Tracker — table of applied jobs with status and location, plus follow-up reminder dates"
+      ]
+    },
+    {
+      "role": "company_recruiter",
+      "login_label": "Company / Recruiter Login",
+      "dashboard_sections": [
+        "Post a Job — simple form to create a job posting",
+        "Duplicate & Fake Job Detector — when a new posting is added, flag if it looks like a duplicate of an existing listing or has suspicious/fake patterns (mocked detection logic with a visible reason)",
+        "Applicant Pipeline — list of candidates who applied with their fit score, so recruiters see ranked, relevant candidates instead of generic spam applications",
+        "Transparency Panel — shows recruiters how the fit-ranking was calculated for each candidate (builds trust, addresses the 'black-box AI' complaint)"
+      ]
+    }
+  ],
+  "cross_cutting_features_to_implement": [
+    {
+      "feature": "Consistency Engine",
+      "solves": "Existing tools give nearly identical, generic results across every tool",
+      "how": "Every score/recommendation shown in the UI must display the specific reasons behind it (no unexplained black-box numbers) — this is the differentiator vs LazyApply/JobCopilot-style tools"
+    },
+    {
+      "feature": "Data Validation Layer",
+      "solves": "Data inconsistency between resume, job posting, and profile data",
+      "how": "Show a small 'data health check' indicator on the resume/profile page (e.g. missing fields, outdated info flagged)"
+    },
+    {
+      "feature": "Human-in-the-loop control",
+      "solves": "Manual intervention pain point — but keep the ONE critical checkpoint (final submission) human-approved so it's trustworthy, not fully blind automation",
+      "how": "Approve/Reject buttons on every tailored application before it moves to 'Applied' status"
+    },
+    {
+      "feature": "Bottleneck Visualizer",
+      "solves": "Process bottleneck difficulties",
+      "how": "A simple funnel/progress bar showing where a candidate is getting stuck (e.g. '12 applied, 3 shortlisted, 0 interviewed' — highlight the drop-off stage)"
+    },
+    {
+      "feature": "Transparency-first design",
+      "solves": "Lack of transparency in existing AI hiring tools",
+      "how": "Every AI-generated score or recommendation anywhere in the app has a visible 'why' expandable section"
+    },
+    {
+      "feature": "n8n-style automation hook",
+      "solves": "Users want automation for repetitive apply actions",
+      "how": "Add a settings toggle 'Auto-scan for new matching jobs every day' that visually represents a background automation workflow (can be mocked/simulated for demo, describe it as powered by an n8n-style workflow engine in the architecture slide)"
+    }
+  ],
+  "intentional_demo_bug": {
+    "purpose": "Judges like seeing self-awareness — show ONE small, harmless UI bug live, then explain the real-world problem it represents and how you would fix it post-hackathon. This makes 'Functionality' and 'Presentation' scoring stronger, not weaker.",
+    "suggestion": "On the Job Comparison page, when comparing 3 jobs, make the fit-score bar for the 3rd job intentionally NOT update on first click (needs a second click to refresh). During the live demo, click it, point it out calmly, and say: 'This is a real issue we found in testing — async state not refreshing on first render. In production we'd fix this with a proper state-management library. This is exactly the kind of edge case our Functionality testing caught.'",
+    "tone": "Confident, not apologetic — frame it as evidence of real testing, not carelessness"
+  },
+  "screens_to_build": [
+    "Landing page with 3 role-based login cards (Student / Job Seeker / Company)",
+    "Student Dashboard",
+    "Job Seeker Dashboard",
+    "Company Dashboard",
+    "Job Fit Score detail page (the transparency 'why' page)",
+    "Job Comparison page (contains the intentional demo bug)",
+    "Application Tracker page"
+  ],
+  "sample_data_needed": "Generate 8-10 mock job postings, 3 mock student/job-seeker profiles, and 2-3 mock company accounts as static JSON so the whole demo works without a real backend or real user data."
+}
