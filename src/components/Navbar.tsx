@@ -34,6 +34,7 @@ export default function Navbar() {
     role,
     isLoggedIn,
     userName,
+    profile,
     isHydrated,
     logout,
     selectedCompareJobIds,
@@ -315,11 +316,20 @@ export default function Navbar() {
               <>
                 {/* User Identity Chip */}
                 <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-800 shadow-inner">
-                  <div
-                    className={`w-6 h-6 rounded-lg bg-gradient-to-r ${roleConfig.gradient} flex items-center justify-center text-white shadow-sm`}
-                  >
-                    <RoleIcon className="w-3.5 h-3.5" />
-                  </div>
+                  {profile?.image ? (
+                    <img
+                      src={profile.image}
+                      alt={userName || 'User Avatar'}
+                      referrerPolicy="no-referrer"
+                      className="w-6 h-6 rounded-lg object-cover border border-slate-700 shadow-sm"
+                    />
+                  ) : (
+                    <div
+                      className={`w-6 h-6 rounded-lg bg-gradient-to-r ${roleConfig.gradient} flex items-center justify-center text-white shadow-sm`}
+                    >
+                      <RoleIcon className="w-3.5 h-3.5" />
+                    </div>
+                  )}
                   <div className="flex flex-col text-left">
                     <span className="text-xs font-bold text-white max-w-[110px] truncate leading-tight">
                       {userName || roleConfig.fullName}
@@ -358,7 +368,7 @@ export default function Navbar() {
                 <button
                   onClick={handleLogout}
                   id="logout-switch-role-btn"
-                  title="Sign out and return to role selection"
+                  title="Sign out and return to login"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:border-rose-500/50 transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5 text-rose-400" />
@@ -377,8 +387,9 @@ export default function Navbar() {
                   <span>Pricing</span>
                 </Link>
                 <Link
-                  href="/#role-gateways"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-500/20 active:scale-95"
+                  href="/login"
+                  id="nav-signin-btn"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-500/20 active:scale-95"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   <span>Sign In</span>

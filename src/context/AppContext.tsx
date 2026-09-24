@@ -152,28 +152,84 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // v2: Internships
   const [internships, setInternships] = useState<InternshipPosting[]>(mockInternships);
 
-  // Hydrate auth state from localStorage on initial client mount
+  // Hydrate auth state from server session (/api/auth/session) or localStorage
   useEffect(() => {
-    try {
-      const savedAuth = localStorage.getItem('careerpilot_auth');
-      if (savedAuth) {
-        const parsed = JSON.parse(savedAuth);
-        if (parsed && parsed.isLoggedIn && parsed.role) {
-          setIsLoggedIn(true);
-          setRoleState(parsed.role);
-          const name = parsed.userName || '';
-          setUserName(name);
-          const baseProfile = mockCandidateProfiles[parsed.role as UserRole];
-          if (baseProfile) {
+    let isMounted = true;
+
+    async function checkAuthSession() {
+      // 1. First check server-side signed Google OAuth session
+      try {
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.authenticated && data.user && isMounted) {
+            const userRole = (data.user.role || 'job_seeker') as UserRole;
+            setIsLoggedIn(true);
+            setRoleState(userRole);
+            setUserName(data.user.name || '');
+
+            const baseProfile = mockCandidateProfiles[userRole] || mockCandidateProfiles['job_seeker'];
             setProfile({
               ...baseProfile,
-              name: name || baseProfile.name,
+              name: data.user.name || baseProfile.name,
+              email: data.user.email || baseProfile.email,
+              image: data.user.image,
+              googleId: data.user.id,
             });
+
+            try {
+              localStorage.setItem(
+                'careerpilot_auth',
+                JSON.stringify({
+                  isLoggedIn: true,
+                  userName: data.user.name || '',
+                  role: userRole,
+                })
+              );
+            } catch {
+              // ignore localStorage write errors
+            }
+            return;
           }
         }
+      } catch (err) {
+        console.warn('Google session check skipped or failed:', err);
       }
 
-      // Hydrate portfolio lock state
+      // 2. Fallback to localStorage for client-persisted demo role sessions
+      try {
+        const savedAuth = localStorage.getItem('careerpilot_auth');
+        if (savedAuth && isMounted) {
+          const parsed = JSON.parse(savedAuth);
+          if (parsed && parsed.isLoggedIn && parsed.role) {
+            setIsLoggedIn(true);
+            setRoleState(parsed.role);
+            const name = parsed.userName || '';
+            setUserName(name);
+            const baseProfile = mockCandidateProfiles[parsed.role as UserRole];
+            if (baseProfile) {
+              setProfile(prev => ({
+                ...baseProfile,
+                name: name || baseProfile.name,
+                image: prev?.image,
+                googleId: prev?.googleId,
+              }));
+            }
+          }
+        }
+      } catch {
+        // LocalStorage access may fail in private mode or SSR
+      } finally {
+        if (isMounted) {
+          setIsHydrated(true);
+        }
+      }
+    }
+
+    checkAuthSession();
+
+    // Hydrate portfolio lock state
+    try {
       const savedLock = localStorage.getItem('careerpilot_portfolio_lock');
       if (savedLock) {
         const parsedLock = JSON.parse(savedLock);
@@ -181,10 +237,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (parsedLock.hash) setPortfolioLockedHash(parsedLock.hash);
       }
     } catch {
-      // LocalStorage access may fail in private mode or SSR
-    } finally {
-      setIsHydrated(true);
+      // ignore
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -193,6 +251,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setProfile(prev => ({
         ...base,
         name: userName || prev.name || base.name,
+        email: prev?.email || base.email,
+        image: prev?.image,
+        googleId: prev?.googleId,
       }));
     }
   }, [role, userName]);
@@ -211,10 +272,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUserName(trimmedName);
 
     const baseProfile = mockCandidateProfiles[newRole];
-    setProfile({
+    setProfile(prev => ({
       ...baseProfile,
       name: trimmedName || baseProfile.name,
-    });
+      image: prev?.image,
+      googleId: prev?.googleId,
+    }));
 
     try {
       localStorage.setItem(
@@ -246,7 +309,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
-    showToast('Signed out. Please select your role to continue.', 'info');
+    // Call server-side logout to destroy the HttpOnly session cookie
+    fetch('/api/auth/logout', { method: 'POST' }).catch(err => {
+      console.warn('Server logout error:', err);
+    });
+    showToast('Signed out successfully. Please select your role to continue.', 'info');
   };
 
   const setRole = (newRole: UserRole) => {

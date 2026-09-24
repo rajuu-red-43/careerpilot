@@ -134,6 +134,13 @@ export default function LandingPage() {
     }
   };
 
+  const handleGoogleLogin = () => {
+    const targetUrl = new URL('/api/auth/google', window.location.origin);
+    targetUrl.searchParams.set('role', selectedRole);
+    targetUrl.searchParams.set('callbackUrl', getDashboardHrefForRole(selectedRole));
+    window.location.href = targetUrl.toString();
+  };
+
   // Eye cursor tracking state & refs
   const [pupilOffset, setPupilOffset] = useState({ x: 0, y: 0 });
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -745,13 +752,9 @@ export default function LandingPage() {
               <div className="pt-2 flex flex-col sm:flex-row items-center gap-2.5 border-t border-slate-800/80">
                 <button
                   type="button"
-                  onClick={() => {
-                    const finalName = enteredName.trim() || rolePresets[selectedRole].defaultName;
-                    login(`${finalName} (Google OAuth)`, selectedRole);
-                    showToast(`Authenticated via Google OAuth 2.0 as ${rolePresets[selectedRole].title}!`, 'success');
-                    router.push(getDashboardHrefForRole(selectedRole));
-                  }}
-                  className="w-full sm:flex-1 py-2 px-3.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                  id="landing-google-login-btn"
+                  onClick={handleGoogleLogin}
+                  className="w-full sm:flex-1 py-2 px-3.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95"
                 >
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

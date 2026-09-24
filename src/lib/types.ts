@@ -129,6 +129,16 @@ export interface SkillRoadmapDomain {
   futureProjections: FutureDemandData[];
 }
 
+export interface UserSession {
+  id: string; // Google User ID (sub)
+  name: string;
+  email: string;
+  image?: string;
+  role: UserRole;
+  provider: 'google' | 'credential';
+  expiresAt?: number;
+}
+
 export interface CandidateProfile {
   id: string;
   name: string;
@@ -144,6 +154,8 @@ export interface CandidateProfile {
   currentProgressStage: 'Skill Building' | 'Resume Ready' | 'Applying' | 'Interview' | 'Offered';
   interviewReadinessScore?: number;
   trialDaysLeft?: number;
+  image?: string;
+  googleId?: string;
 }
 
 export interface AutomationLog {
