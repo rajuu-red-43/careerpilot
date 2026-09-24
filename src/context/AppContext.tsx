@@ -158,7 +158,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     async function checkAuthSession() {
-      // 1. First check server-side signed Phone OTP session
+      // 1. First check server-side signed session
       try {
         const res = await fetch('/api/auth/session');
         if (res.ok) {
@@ -195,7 +195,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (err) {
-        console.warn('Phone session check skipped or failed:', err);
+        console.warn('Session check skipped or failed:', err);
       }
 
       // 2. Fallback to localStorage for client-persisted demo role sessions

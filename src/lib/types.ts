@@ -132,11 +132,11 @@ export interface SkillRoadmapDomain {
 export interface UserSession {
   id: string; // User ID / UUID
   name: string;
-  phone: string;
   email?: string;
+  phone?: string;
   image?: string;
   role: UserRole;
-  provider: 'phone' | 'credential' | 'supabase';
+  provider: 'session' | 'credential' | 'supabase';
   expiresAt?: number;
   preferredLanguage?: string;
 }

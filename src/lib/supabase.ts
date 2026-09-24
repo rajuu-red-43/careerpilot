@@ -18,11 +18,11 @@ export const SUPABASE_CONFIG: SupabaseConfig = {
 
 // SQL Schema for CareerPilot v2 tables in Supabase
 export const SUPABASE_SCHEMA_SQL = `
--- 1. Profiles Table (Phone OTP + Role + Preferred Language)
+-- 1. Profiles Table (Role + Preferred Language + Skills)
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  phone TEXT UNIQUE,
   user_id UUID,
+  phone TEXT,
   name TEXT NOT NULL,
   email TEXT,
   image TEXT,

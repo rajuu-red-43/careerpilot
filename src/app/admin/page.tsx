@@ -223,7 +223,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
           <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
             <span className="font-bold text-white font-mono">public.profiles</span>
-            <p className="text-[11px] text-slate-400">Phone OTP + Preferred Language + Role Partitioning</p>
+            <p className="text-[11px] text-slate-400">Preferred Language + Role Partitioning</p>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
             <span className="font-bold text-white font-mono">public.courses</span>

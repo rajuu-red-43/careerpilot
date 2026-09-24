@@ -100,7 +100,7 @@ export default function SettingsPage() {
               )}
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-bold text-white truncate">{userName || 'Authenticated User'}</span>
-                <span className="text-xs text-slate-400 truncate">{profile?.phone || profile?.email || 'Phone Verified'}</span>
+                <span className="text-xs text-slate-400 truncate">{profile?.phone || profile?.email || 'Active User'}</span>
                 <span className="text-[10px] text-indigo-400 font-mono uppercase mt-0.5">Role: {role}</span>
               </div>
             </div>

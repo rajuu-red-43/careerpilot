@@ -134,7 +134,7 @@ export default function LandingPage() {
     }
   };
 
-  const handlePhoneLogin = () => {
+  const handleOpenLogin = () => {
     router.push(`/login?role=${selectedRole}&callbackUrl=${encodeURIComponent(getDashboardHrefForRole(selectedRole))}`);
   };
 
@@ -745,16 +745,16 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Secure Phone OTP Authentication */}
+              {/* Workspace Portal Entry */}
               <div className="pt-2 flex flex-col sm:flex-row items-center gap-2.5 border-t border-slate-800/80">
                 <button
                   type="button"
-                  id="landing-phone-login-btn"
-                  onClick={handlePhoneLogin}
+                  id="landing-portal-login-btn"
+                  onClick={handleOpenLogin}
                   className="w-full py-2.5 px-3.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95"
                 >
                   <Lock className="w-3.5 h-3.5" />
-                  <span>Sign In with Phone OTP</span>
+                  <span>Sign In / Choose Portal</span>
                 </button>
               </div>
 

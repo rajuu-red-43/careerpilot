@@ -1,14 +1,14 @@
 -- =========================================================================
 -- CareerPilot v2: Master Database Schema & Learning Intelligence Migration
--- Phone OTP Auth + 23 Multi-Language + Student Learning Dataset + Job Matching
+-- 23 Multi-Language + Student Learning Dataset + Transparent Job Matching
 -- Idempotent: Safe to execute on both fresh and pre-existing Supabase databases
 -- =========================================================================
 
--- 1. Profiles Table (Phone Auth + Role + Preferred Language)
+-- 1. Profiles Table (Role + Preferred Language + Skills)
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  phone TEXT UNIQUE,
   user_id UUID,
+  phone TEXT,
   name TEXT NOT NULL,
   email TEXT,
   image TEXT,
@@ -32,7 +32,7 @@ BEGIN
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'phone'
   ) THEN
-    ALTER TABLE public.profiles ADD COLUMN phone TEXT UNIQUE;
+    ALTER TABLE public.profiles ADD COLUMN phone TEXT;
   END IF;
 
   IF NOT EXISTS (
