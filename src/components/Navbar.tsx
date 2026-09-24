@@ -138,40 +138,48 @@ export default function Navbar() {
                     href="/student"
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                       pathname === '/student'
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
                         : 'text-slate-300 hover:text-white hover:bg-slate-900'
                     }`}
                   >
-                    <GraduationCap className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Dashboard</span>
+                    <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Home</span>
                   </Link>
 
                   <Link
-                    href="/student#skill-roadmap"
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-900 flex items-center gap-1.5 transition-all"
-                  >
-                    <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Skill Roadmap</span>
-                  </Link>
-
-                  <Link
-                    href="/student#career-path"
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-900 flex items-center gap-1.5 transition-all"
-                  >
-                    <Target className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Career Path</span>
-                  </Link>
-
-                  <Link
-                    href="/internships"
+                    href="/job-seeker"
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                      pathname === '/internships'
-                        ? 'bg-slate-800 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                      pathname === '/job-seeker'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-900'
                     }`}
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Internships</span>
+                    <Briefcase className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Jobs</span>
+                  </Link>
+
+                  <Link
+                    href="/learn"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                      pathname === '/learn'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Learn</span>
+                  </Link>
+
+                  <Link
+                    href="/applications"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                      pathname === '/applications'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >
+                    <FileCheck2 className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Applications</span>
                   </Link>
                 </>
               )}
@@ -303,13 +311,16 @@ export default function Navbar() {
               </Link>
             </nav>
           ) : (
-            <div className="hidden md:flex items-center gap-3 text-xs text-slate-400 font-medium">
-              <Link href="/pricing" className="text-slate-400 hover:text-cyan-300 transition-colors">
-                Pricing &amp; Plans
+            <div className="hidden md:flex items-center gap-4 text-xs font-medium">
+              <Link href="/job-seeker" className="text-slate-300 hover:text-white transition-colors">
+                Jobs
               </Link>
-              <span>&bull;</span>
-              <Link href="/internships" className="text-slate-400 hover:text-cyan-300 transition-colors">
-                Upskilling Board
+              <Link href="/learn" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1">
+                <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Learn</span>
+              </Link>
+              <Link href="/pricing" className="text-slate-400 hover:text-white transition-colors">
+                Pricing
               </Link>
             </div>
           )}

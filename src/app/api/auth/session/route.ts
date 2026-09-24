@@ -16,14 +16,16 @@ export async function GET(request: Request) {
   const session = verifySession(sessionToken);
 
   if (!session) {
-    return NextResponse.json({ user: null });
+    return NextResponse.json({ authenticated: false, user: null });
   }
 
   return NextResponse.json({
+    authenticated: true,
     user: {
       id: session.id,
       name: session.name,
-      email: session.email,
+      phone: session.phone,
+      email: session.email || null,
       image: session.image || null,
       role: session.role,
       provider: session.provider,

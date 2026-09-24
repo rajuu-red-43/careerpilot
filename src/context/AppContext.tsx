@@ -158,24 +158,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     async function checkAuthSession() {
-      // 1. First check server-side signed Google OAuth session
+      // 1. First check server-side signed Phone OTP session
       try {
         const res = await fetch('/api/auth/session');
         if (res.ok) {
           const data = await res.json();
           if (data && data.authenticated && data.user && isMounted) {
-            const userRole = (data.user.role || 'job_seeker') as UserRole;
+            const userRole = (data.user.role || 'college_student') as UserRole;
             setIsLoggedIn(true);
             setRoleState(userRole);
             setUserName(data.user.name || '');
 
-            const baseProfile = mockCandidateProfiles[userRole] || mockCandidateProfiles['job_seeker'];
+            const baseProfile = mockCandidateProfiles[userRole] || mockCandidateProfiles['college_student'];
             setProfile({
               ...baseProfile,
               name: data.user.name || baseProfile.name,
+              phone: data.user.phone || '',
               email: data.user.email || baseProfile.email,
               image: data.user.image,
-              googleId: data.user.id,
               preferredLanguage: data.user.preferredLanguage || 'en',
             });
 
@@ -195,7 +195,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (err) {
-        console.warn('Google session check skipped or failed:', err);
+        console.warn('Phone session check skipped or failed:', err);
       }
 
       // 2. Fallback to localStorage for client-persisted demo role sessions
@@ -214,7 +214,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 ...baseProfile,
                 name: name || baseProfile.name,
                 image: prev?.image,
-                googleId: prev?.googleId,
+                phone: prev?.phone,
               }));
             }
           }
@@ -252,10 +252,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (base) {
       setProfile(prev => ({
         ...base,
-        name: userName || prev.name || base.name,
+        name: userName || prev?.name || base.name,
+        phone: prev?.phone,
         email: prev?.email || base.email,
         image: prev?.image,
-        googleId: prev?.googleId,
         preferredLanguage: prev?.preferredLanguage,
       }));
     }
@@ -279,7 +279,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...baseProfile,
       name: trimmedName || baseProfile.name,
       image: prev?.image,
-      googleId: prev?.googleId,
+      phone: prev?.phone,
     }));
 
     try {

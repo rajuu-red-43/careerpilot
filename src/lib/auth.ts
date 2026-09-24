@@ -2,20 +2,11 @@ import crypto from 'crypto';
 import { UserRole, UserSession } from './types';
 
 // =========================================================================
-// Environment & Configuration
+// Environment & Configuration for Authentication
 // =========================================================================
 
 export const AUTH_CONFIG = {
-  // Google OAuth Credentials (server-side only)
-  get googleClientId(): string {
-    return (process.env.GOOGLE_CLIENT_ID || '').trim();
-  },
-  get googleClientSecret(): string {
-    return (process.env.GOOGLE_CLIENT_SECRET || '').trim();
-  },
-
   // Secret key used to sign session cookies with HMAC-SHA256
-  // Defaults to a stable fallback in development if NEXTAUTH_SECRET is not provided yet
   get sessionSecret(): string {
     return (
       (process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || '').trim() ||
@@ -25,15 +16,13 @@ export const AUTH_CONFIG = {
 
   // Cookie configuration
   sessionCookieName: 'careerpilot_session',
-  oauthStateCookieName: 'careerpilot_oauth_state',
+  sessionMaxAge: 30 * 24 * 60 * 60, // 30 days
 
-  // Google OAuth Endpoints
-  googleAuthUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-  googleTokenUrl: 'https://oauth2.googleapis.com/token',
-  googleUserInfoUrl: 'https://www.googleapis.com/oauth2/v3/userinfo',
-
-  // Minimum required scopes
-  scopes: ['openid', 'email', 'profile'].join(' '),
+  // OTP Configuration
+  otpExpiryMs: 5 * 60 * 1000, // 5 minutes
+  otpCooldownSeconds: 60, // 60 seconds resend cooldown
+  maxOtpAttempts: 5, // max failed verification attempts before invalidation
+  maxOtpRequestsPerHour: 10, // rate-limiting
 };
 
 /**
@@ -41,20 +30,15 @@ export const AUTH_CONFIG = {
  * Vercel Preview, and Vercel Production.
  */
 export function getAppBaseUrl(req?: Request): string {
-  // 1. Explicit environment variable
   if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+    return process.env.NEXT_PUBLIC_APP_URL.trim().replace(/\/$/, '');
   }
-
-  // 2. Vercel deployment URL
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.trim()}`;
   }
   if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+    return `https://${process.env.VERCEL_URL.trim()}`;
   }
-
-  // 3. Request headers if available
   if (req) {
     const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
     const proto = req.headers.get('x-forwarded-proto') || 'http';
@@ -62,8 +46,6 @@ export function getAppBaseUrl(req?: Request): string {
       return `${proto}://${host}`;
     }
   }
-
-  // 4. Default production or local development fallback
   if (process.env.NODE_ENV === 'production') {
     return 'https://careerpilot-git-main-alpha-8569.vercel.app';
   }
@@ -71,33 +53,225 @@ export function getAppBaseUrl(req?: Request): string {
 }
 
 /**
- * Generates the exact Google OAuth Redirect URI for the current environment.
+ * Normalizes phone numbers to standard E.164 format.
+ * Defaults 10-digit numbers to +91 (India).
  */
-export function getGoogleRedirectUri(req?: Request): string {
-  const baseUrl = getAppBaseUrl(req);
-  return `${baseUrl}/api/auth/callback/google`;
+export function normalizePhoneNumber(rawPhone: string): string {
+  const cleaned = rawPhone.replace(/[^\d+]/g, '').trim();
+  if (cleaned.startsWith('+')) {
+    return cleaned;
+  }
+  if (cleaned.length === 10) {
+    return `+91${cleaned}`;
+  }
+  if (cleaned.length === 12 && cleaned.startsWith('91')) {
+    return `+${cleaned}`;
+  }
+  return `+${cleaned}`;
+}
+
+export function isValidPhoneNumber(phone: string): boolean {
+  const normalized = normalizePhoneNumber(phone);
+  // Standard E.164 international phone number: + followed by 10 to 15 digits
+  return /^\+[1-9]\d{9,14}$/.test(normalized);
 }
 
 // =========================================================================
-// Cryptographic Helpers (PKCE, CSRF State, and HMAC Signing)
+// Cryptographic In-Memory Token Manager for Secure Phone OTP
+// Never stores raw OTPs - only stores HMAC-SHA256 salted hashes.
+// =========================================================================
+
+interface OtpRecord {
+  phone: string;
+  hash: string;
+  salt: string;
+  createdAt: number;
+  expiresAt: number;
+  attempts: number;
+  lastSentAt: number;
+}
+
+interface RateLimitRecord {
+  count: number;
+  windowStart: number;
+}
+
+class PhoneOtpManager {
+  private static instance: PhoneOtpManager;
+  private otps: Map<string, OtpRecord> = new Map();
+  private rateLimits: Map<string, RateLimitRecord> = new Map();
+
+  private constructor() {
+    // Periodic garbage collection for expired entries
+    if (typeof setInterval !== 'undefined') {
+      setInterval(() => this.cleanup(), 60000);
+    }
+  }
+
+  public static getInstance(): PhoneOtpManager {
+    if (!PhoneOtpManager.instance) {
+      PhoneOtpManager.instance = new PhoneOtpManager();
+    }
+    return PhoneOtpManager.instance;
+  }
+
+  private hashOtp(phone: string, otp: string, salt: string): string {
+    return crypto
+      .createHmac('sha256', AUTH_CONFIG.sessionSecret)
+      .update(`${phone}:${otp}:${salt}`)
+      .digest('hex');
+  }
+
+  private cleanup() {
+    const now = Date.now();
+    for (const [phone, record] of this.otps.entries()) {
+      if (now > record.expiresAt) {
+        this.otps.delete(phone);
+      }
+    }
+    for (const [key, limit] of this.rateLimits.entries()) {
+      if (now - limit.windowStart > 60 * 60 * 1000) {
+        this.rateLimits.delete(key);
+      }
+    }
+  }
+
+  public createOtp(rawPhone: string): {
+    success: boolean;
+    otp?: string;
+    message: string;
+    cooldownSeconds?: number;
+  } {
+    const phone = normalizePhoneNumber(rawPhone);
+    const now = Date.now();
+
+    // 1. Check Rate Limit (max 10 requests per hour)
+    const limit = this.rateLimits.get(phone) || { count: 0, windowStart: now };
+    if (now - limit.windowStart > 60 * 60 * 1000) {
+      limit.count = 0;
+      limit.windowStart = now;
+    }
+    if (limit.count >= AUTH_CONFIG.maxOtpRequestsPerHour) {
+      return {
+        success: false,
+        message: 'Too many OTP requests. Please wait an hour before requesting again.',
+      };
+    }
+
+    // 2. Check Cooldown (60s)
+    const existing = this.otps.get(phone);
+    if (existing && now - existing.lastSentAt < AUTH_CONFIG.otpCooldownSeconds * 1000) {
+      const remainingSeconds = Math.ceil(
+        (AUTH_CONFIG.otpCooldownSeconds * 1000 - (now - existing.lastSentAt)) / 1000
+      );
+      return {
+        success: false,
+        message: `Please wait ${remainingSeconds} seconds before requesting a new OTP.`,
+        cooldownSeconds: remainingSeconds,
+      };
+    }
+
+    // 3. Generate Cryptographically Secure 6-digit OTP
+    const otpInt = crypto.randomInt(100000, 999999);
+    const otp = otpInt.toString();
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = this.hashOtp(phone, otp, salt);
+
+    this.otps.set(phone, {
+      phone,
+      hash,
+      salt,
+      createdAt: now,
+      expiresAt: now + AUTH_CONFIG.otpExpiryMs,
+      attempts: 0,
+      lastSentAt: now,
+    });
+
+    limit.count += 1;
+    this.rateLimits.set(phone, limit);
+
+    return {
+      success: true,
+      otp, // Used by SMS sender service or demo fallback; NOT stored in plaintext
+      message: 'OTP sent successfully.',
+      cooldownSeconds: AUTH_CONFIG.otpCooldownSeconds,
+    };
+  }
+
+  public verifyOtp(
+    rawPhone: string,
+    submittedOtp: string
+  ): { success: boolean; message: string; remainingAttempts?: number } {
+    const phone = normalizePhoneNumber(rawPhone);
+    const record = this.otps.get(phone);
+    const now = Date.now();
+
+    if (!record) {
+      return {
+        success: false,
+        message: 'No active OTP request found. Please request a new OTP.',
+      };
+    }
+
+    if (now > record.expiresAt) {
+      this.otps.delete(phone);
+      return {
+        success: false,
+        message: 'OTP has expired. Please request a new OTP.',
+      };
+    }
+
+    if (record.attempts >= AUTH_CONFIG.maxOtpAttempts) {
+      this.otps.delete(phone);
+      return {
+        success: false,
+        message: 'Maximum verification attempts exceeded. Please request a new OTP.',
+      };
+    }
+
+    // Compute submitted OTP hash
+    const submittedHash = this.hashOtp(phone, submittedOtp.trim(), record.salt);
+    const recordHashBuf = Buffer.from(record.hash, 'hex');
+    const submittedHashBuf = Buffer.from(submittedHash, 'hex');
+
+    const isValid =
+      recordHashBuf.length === submittedHashBuf.length &&
+      crypto.timingSafeEqual(recordHashBuf, submittedHashBuf);
+
+    if (!isValid) {
+      record.attempts += 1;
+      const remaining = AUTH_CONFIG.maxOtpAttempts - record.attempts;
+      if (remaining <= 0) {
+        this.otps.delete(phone);
+        return {
+          success: false,
+          message: 'Incorrect OTP. Maximum attempts reached. Please request a new code.',
+        };
+      }
+      return {
+        success: false,
+        message: `Incorrect OTP. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
+        remainingAttempts: remaining,
+      };
+    }
+
+    // OTP verified successfully -> invalidate immediately to prevent replay
+    this.otps.delete(phone);
+    return {
+      success: true,
+      message: 'OTP verified successfully.',
+    };
+  }
+}
+
+export const phoneOtpManager = PhoneOtpManager.getInstance();
+
+// =========================================================================
+// Cryptographic HMAC-SHA256 Session Signing & Verification
 // =========================================================================
 
 /**
- * Generate a random URL-safe base64 string
- */
-export function generateRandomString(bytes = 32): string {
-  return crypto.randomBytes(bytes).toString('base64url');
-}
-
-/**
- * Creates a PKCE Code Challenge (SHA-256 hash of verifier, base64url encoded)
- */
-export function generateCodeChallenge(verifier: string): string {
-  return crypto.createHash('sha256').update(verifier).digest('base64url');
-}
-
-/**
- * Cryptographically signs a session payload using HMAC-SHA256
+ * Cryptographically signs a session payload using HMAC-SHA256.
  * Returns format: `${base64payload}.${signature}`
  */
 export function signSession(session: UserSession): string {
@@ -146,52 +320,6 @@ export function verifySession(token: string | undefined | null): UserSession | n
     }
 
     return parsed;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * OAuth State cookie structure for CSRF and PKCE
- */
-export interface OAuthStateCookie {
-  state: string;
-  codeVerifier: string;
-  targetRole: UserRole;
-  callbackUrl: string;
-  timestamp: number;
-}
-
-export function signOAuthState(data: OAuthStateCookie): string {
-  const payloadStr = JSON.stringify(data);
-  const encoded = Buffer.from(payloadStr, 'utf8').toString('base64url');
-  const signature = crypto
-    .createHmac('sha256', AUTH_CONFIG.sessionSecret)
-    .update(encoded)
-    .digest('base64url');
-  return `${encoded}.${signature}`;
-}
-
-export function verifyOAuthState(token: string | undefined | null): OAuthStateCookie | null {
-  if (!token || typeof token !== 'string') return null;
-  const parts = token.split('.');
-  if (parts.length !== 2) return null;
-
-  const [encoded, signature] = parts;
-  const expected = crypto
-    .createHmac('sha256', AUTH_CONFIG.sessionSecret)
-    .update(encoded)
-    .digest('base64url');
-
-  const buf1 = Buffer.from(signature, 'utf8');
-  const buf2 = Buffer.from(expected, 'utf8');
-  if (buf1.length !== buf2.length || !crypto.timingSafeEqual(buf1, buf2)) return null;
-
-  try {
-    const decoded = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
-    // State expires in 10 minutes
-    if (Date.now() - decoded.timestamp > 10 * 60 * 1000) return null;
-    return decoded;
   } catch {
     return null;
   }

@@ -218,24 +218,24 @@ export default function AdminDashboard() {
       <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-4">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>Active Supabase Compliance &amp; Tables Check</span>
+          <span>Active Supabase Compliance &amp; Master Tables Check</span>
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
           <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
             <span className="font-bold text-white font-mono">public.profiles</span>
-            <p className="text-[11px] text-slate-400">Role-level partitioning, zero personal data leak</p>
+            <p className="text-[11px] text-slate-400">Phone OTP + Preferred Language + Role Partitioning</p>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-            <span className="font-bold text-white font-mono">public.portfolios</span>
-            <p className="text-[11px] text-slate-400">Tamper-proof cryptographic lock hash protection</p>
+            <span className="font-bold text-white font-mono">public.courses</span>
+            <p className="text-[11px] text-slate-400">Verified courses from NPTEL, Coursera, freeCodeCamp</p>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-            <span className="font-bold text-white font-mono">public.applications</span>
-            <p className="text-[11px] text-slate-400">Priority queue buckets &amp; human gate status</p>
+            <span className="font-bold text-white font-mono">public.skills</span>
+            <p className="text-[11px] text-slate-400">Normalized taxonomy with alias mapping</p>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-            <span className="font-bold text-white font-mono">public.rejection_feedback</span>
-            <p className="text-[11px] text-slate-400">Memory log feeding automated skill gap correction</p>
+            <span className="font-bold text-white font-mono">public.career_paths</span>
+            <p className="text-[11px] text-slate-400">Structured learning order &amp; job matching criteria</p>
           </div>
         </div>
       </div>

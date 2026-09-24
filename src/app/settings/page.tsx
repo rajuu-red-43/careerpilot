@@ -82,7 +82,7 @@ export default function SettingsPage() {
           <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm">
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
               <User className="w-4 h-4 text-indigo-400" />
-              <span>{t('settings.activeSession', 'Active Google Session')}</span>
+              <span>{t('settings.activeSession', 'Active Session')}</span>
             </h3>
 
             <div className="flex items-center gap-3">
@@ -100,7 +100,7 @@ export default function SettingsPage() {
               )}
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-bold text-white truncate">{userName || 'Authenticated User'}</span>
-                <span className="text-xs text-slate-400 truncate">{profile?.email || 'google-user@domain.com'}</span>
+                <span className="text-xs text-slate-400 truncate">{profile?.phone || profile?.email || 'Phone Verified'}</span>
                 <span className="text-[10px] text-indigo-400 font-mono uppercase mt-0.5">Role: {role}</span>
               </div>
             </div>
@@ -130,10 +130,7 @@ export default function SettingsPage() {
               <span>{t('settings.securitySection', 'Security & Session')}</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              {t(
-                'settings.securityDesc',
-                'Your session is encrypted via server-side HttpOnly cookies with PKCE verification.'
-              )}
+              Your session is encrypted via server-side HttpOnly cookies with cryptographic HMAC-SHA256 signature verification.
             </p>
           </div>
         </div>

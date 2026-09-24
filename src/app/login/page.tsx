@@ -1,285 +1,403 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { UserRole } from '../../lib/types';
+import { SUPPORTED_LANGUAGES, getLanguage } from '../../i18n/languages';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   Compass,
   GraduationCap,
   Briefcase,
   Building2,
   ShieldCheck,
-  AlertCircle,
-  CheckCircle2,
+  Phone,
+  KeyRound,
   ArrowRight,
-  Shield,
-  Lock,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
 
 function LoginContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const errorParam = searchParams.get('error');
-  const messageParam = searchParams.get('message');
+  const initialRole = (searchParams.get('role') as UserRole) || 'college_student';
   const callbackUrl = searchParams.get('callbackUrl') || '';
 
-  const [selectedRole, setSelectedRole] = useState<UserRole>('job_seeker');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { currentLanguage, setLanguage, t } = useLanguage();
+
+  // Form State
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole);
+  const [selectedLang, setSelectedLang] = useState(currentLanguage.code);
+  const [userName, setUserName] = useState('');
+
+  // Flow State
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState<number>(0);
+  const [demoOtpNotice, setDemoOtpNotice] = useState<string | null>(null);
+
+  // Cooldown countdown timer
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown(prev => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const roleConfigs: Record<
     UserRole,
-    { title: string; subtitle: string; icon: React.ElementType; color: string; badge: string }
+    { title: string; subtitle: string; icon: React.ElementType }
   > = {
     college_student: {
       title: 'College Student',
-      subtitle: 'Skill Roadmaps & Internships',
+      subtitle: 'Learn skills & match jobs',
       icon: GraduationCap,
-      color: 'blue',
-      badge: 'Student Portal',
     },
     job_seeker: {
       title: 'Job Seeker',
-      subtitle: 'Transparent Matching & Real Resumes',
+      subtitle: 'Transparent skill matching',
       icon: Briefcase,
-      color: 'emerald',
-      badge: 'Featured',
     },
     company_recruiter: {
-      title: 'Company Recruiter',
-      subtitle: 'Talent Sieve & Spam Filter',
+      title: 'Recruiter',
+      subtitle: 'Verified candidate pipelines',
       icon: Building2,
-      color: 'purple',
-      badge: 'Recruiter Suite',
     },
     admin: {
-      title: 'Platform Admin',
-      subtitle: 'Operations & Supabase Audit',
+      title: 'Admin',
+      subtitle: 'Manage curriculum & paths',
       icon: ShieldCheck,
-      color: 'amber',
-      badge: 'Admin Console',
     },
   };
 
-  const handleGoogleLogin = () => {
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!phoneNumber.trim()) {
+      setErrorMsg('Please enter your mobile number.');
+      return;
+    }
+
     setIsLoading(true);
-    const targetUrl = new URL('/api/auth/google', window.location.origin);
-    targetUrl.searchParams.set('role', selectedRole);
-    if (callbackUrl) {
-      targetUrl.searchParams.set('callbackUrl', callbackUrl);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.error || 'Failed to send OTP. Please check your number.');
+        if (data.cooldownSeconds) setCooldown(data.cooldownSeconds);
+      } else {
+        setStep('otp');
+        setSuccessMsg(data.message || 'OTP sent successfully.');
+        setCooldown(data.cooldownSeconds || 60);
+        if (data.demoOtp) {
+          setDemoOtpNotice(data.demoOtp);
+          setOtpCode(data.demoOtp); // Auto-fill for convenience
+        }
+      }
+    } catch {
+      setErrorMsg('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    window.location.href = targetUrl.toString();
   };
 
-  const getErrorMessage = () => {
-    if (!errorParam) return null;
-    if (errorParam === 'AccessDenied') {
-      return {
-        title: 'Sign-in Cancelled',
-        desc: 'Google authorization was cancelled. You can retry whenever you are ready.',
-        type: 'info',
-      };
+  const handleVerifyOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!otpCode.trim() || otpCode.trim().length < 4) {
+      setErrorMsg('Please enter the 6-digit OTP code.');
+      return;
     }
-    if (errorParam === 'ConfigurationMissing') {
-      return {
-        title: 'Google OAuth Setup Required',
-        desc:
-          messageParam ||
-          'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required. Please configure them in your environment variables.',
-        type: 'warning',
-      };
-    }
-    if (errorParam === 'InvalidState') {
-      return {
-        title: 'Session Expired',
-        desc: 'Security state verification failed or timed out. Please click Continue with Google to start a fresh login.',
-        type: 'warning',
-      };
-    }
-    return {
-      title: 'Authentication Error',
-      desc: messageParam || 'An error occurred during Google authentication. Please try again.',
-      type: 'warning',
-    };
-  };
 
-  const errorInfo = getErrorMessage();
+    setIsLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch('/api/auth/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: phoneNumber,
+          otp: otpCode.trim(),
+          role: selectedRole,
+          preferredLanguage: selectedLang,
+          name: userName.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.error || 'Verification failed. Please try again.');
+      } else {
+        // Update language in context
+        if (selectedLang !== currentLanguage.code) {
+          await setLanguage(selectedLang);
+        }
+        setSuccessMsg('Authenticated! Opening your workspace...');
+        const destination = callbackUrl || data.redirectUrl || '/student';
+        setTimeout(() => {
+          router.push(destination);
+        }, 300);
+      }
+    } catch {
+      setErrorMsg('Network error during verification.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center px-4 sm:px-6 py-12 relative overflow-hidden">
-      {/* Background ambient lighting */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[30rem] h-[20rem] bg-indigo-500/10 blur-[130px] rounded-full pointer-events-none -z-10"></div>
-      <div className="absolute bottom-10 right-10 w-[20rem] h-[15rem] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none -z-10"></div>
-
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center px-4 sm:px-6 py-10 relative">
       <div className="w-full max-w-md space-y-6">
-        {/* Brand Card */}
+        {/* Brand Header */}
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 p-[1px] shadow-xl shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center">
-                <Compass className="w-6 h-6 text-indigo-400 group-hover:rotate-45 transition-transform duration-300" />
+          <Link href="/" className="inline-flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 p-[1px] shadow-lg shadow-indigo-500/20">
+              <div className="w-full h-full bg-slate-950 rounded-xl flex items-center justify-center">
+                <Compass className="w-5 h-5 text-indigo-400" />
               </div>
             </div>
-            <span className="text-2xl font-extrabold tracking-tight text-white">CareerPilot</span>
+            <span className="text-xl font-bold tracking-tight text-white">CareerPilot</span>
           </Link>
-
-          <div className="pt-2">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-              Welcome back
-            </h1>
-            <p className="text-xs text-slate-400 mt-1">
-              Sign in securely to your CareerPilot workspace
-            </p>
-          </div>
+          <h1 className="text-xl font-bold text-white tracking-tight">
+            {step === 'phone' ? 'Sign In' : 'Enter OTP'}
+          </h1>
+          <p className="text-xs text-slate-400">
+            {step === 'phone'
+              ? 'Enter your mobile number to get started'
+              : `Verification code sent to ${phoneNumber}`}
+          </p>
         </div>
 
-        {/* Error / Alert Banner if redirected from OAuth with error */}
-        {errorInfo && (
-          <div
-            className={`p-4 rounded-2xl border text-xs flex flex-col gap-2.5 animate-in fade-in duration-200 ${
-              errorInfo.type === 'info'
-                ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200'
-                : 'bg-amber-950/30 border-amber-500/40 text-amber-200'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
-              <div className="space-y-0.5 flex-1">
-                <div className="font-bold text-white">{errorInfo.title}</div>
-                <p className="text-[11px] leading-relaxed text-slate-300">{errorInfo.desc}</p>
-              </div>
-            </div>
-            {errorParam === 'ConfigurationMissing' && (
-              <div className="mt-1 pt-2.5 border-t border-amber-500/20 text-[11px] space-y-1.5 text-slate-300">
-                <div className="font-semibold text-amber-300">Google Cloud Console Setup:</div>
-                <div className="font-mono text-[10px] bg-slate-950/60 p-2.5 rounded-lg space-y-1.5 border border-slate-800 text-slate-300">
-                  <div>
-                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Authorized JavaScript Origin:</span>
-                    <span className="text-cyan-400 select-all">https://careerpilot-git-main-alpha-8569.vercel.app</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Authorized Redirect URI:</span>
-                    <span className="text-indigo-400 select-all">https://careerpilot-git-main-alpha-8569.vercel.app/api/auth/callback/google</span>
-                  </div>
-                </div>
-                <p className="text-[10px] text-slate-400">
-                  Add <code className="text-amber-300 font-mono">GOOGLE_CLIENT_ID</code> and <code className="text-amber-300 font-mono">GOOGLE_CLIENT_SECRET</code> to Vercel Environment Variables.
-                </p>
-              </div>
-            )}
+        {/* Status Alerts */}
+        {errorMsg && (
+          <div className="p-3.5 rounded-xl border border-rose-500/40 bg-rose-950/30 text-rose-200 text-xs flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span className="flex-1">{errorMsg}</span>
           </div>
         )}
 
-        {/* Main Login Card */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 sm:p-7 backdrop-blur-xl shadow-2xl space-y-5">
-          {/* Step 1: Select Target Perspective / Role */}
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-              <span>Select Your Role</span>
-              <span className="text-[10px] text-indigo-400 lowercase font-normal">
-                (Tailors your dashboard)
-              </span>
-            </label>
+        {successMsg && (
+          <div className="p-3.5 rounded-xl border border-emerald-500/40 bg-emerald-950/30 text-emerald-200 text-xs flex items-center gap-2.5">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+            <span className="flex-1">{successMsg}</span>
+          </div>
+        )}
 
-            <div className="grid grid-cols-2 gap-2">
-              {(Object.keys(roleConfigs) as UserRole[]).map(roleKey => {
-                const conf = roleConfigs[roleKey];
-                const IconComponent = conf.icon;
-                const isSelected = selectedRole === roleKey;
-                return (
-                  <button
-                    key={roleKey}
-                    type="button"
-                    onClick={() => setSelectedRole(roleKey)}
-                    className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-1 cursor-pointer ${
-                      isSelected
-                        ? 'bg-indigo-950/40 border-indigo-500/80 ring-1 ring-indigo-500/40 shadow-sm'
-                        : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-400'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div
-                        className={`w-6 h-6 rounded-lg flex items-center justify-center ${
+        {demoOtpNotice && step === 'otp' && (
+          <div className="p-3 rounded-xl border border-cyan-500/40 bg-cyan-950/30 text-cyan-200 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Demo OTP: <strong className="font-mono text-white text-sm">{demoOtpNotice}</strong></span>
+            </div>
+            <span className="text-[10px] text-cyan-300">Auto-filled</span>
+          </div>
+        )}
+
+        {/* Card */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5 sm:p-6 shadow-xl space-y-4">
+          {step === 'phone' ? (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              {/* Role Selection */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-slate-300">Select Role</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(roleConfigs) as UserRole[]).map(r => {
+                    const conf = roleConfigs[r];
+                    const Icon = conf.icon;
+                    const isSelected = selectedRole === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setSelectedRole(r)}
+                        className={`p-2.5 rounded-xl border text-left transition-all flex items-center gap-2.5 cursor-pointer ${
                           isSelected
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-800 text-slate-400'
+                            ? 'bg-indigo-950/50 border-indigo-500 text-white shadow-sm'
+                            : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <IconComponent className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">
-                        {conf.badge}
-                      </span>
-                    </div>
-                    <div>
-                      <div className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                        {conf.title}
-                      </div>
-                      <div className="text-[10px] text-slate-500 truncate mt-0.5">
-                        {conf.subtitle}
-                      </div>
-                    </div>
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold truncate">{conf.title}</div>
+                          <div className="text-[10px] text-slate-500 truncate">{conf.subtitle}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Language Selection */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-slate-300">
+                  Preferred Language
+                </label>
+                <select
+                  value={selectedLang}
+                  onChange={e => setSelectedLang(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                >
+                  {SUPPORTED_LANGUAGES.map(lang => (
+                    <option key={lang.code} value={lang.code} className="bg-slate-900 text-white">
+                      {lang.nativeName} ({lang.englishName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Phone Input */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-slate-300">Mobile Number</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                    <Phone className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="tel"
+                    id="phone-input"
+                    placeholder="9876543210"
+                    value={phoneNumber}
+                    onChange={e => setPhoneNumber(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                    autoFocus
+                  />
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  Indian 10-digit mobile number or international with country code.
+                </p>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                id="send-otp-btn"
+                disabled={isLoading}
+                className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Sending OTP...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Send OTP</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              {/* Optional Name for new profiles */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-slate-300">
+                  Your Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Arun Kumar"
+                  value={userName}
+                  onChange={e => setUserName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* OTP Input */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-slate-300">Enter 6-Digit OTP</label>
+                  <button
+                    type="button"
+                    onClick={() => setStep('phone')}
+                    className="text-[10px] text-indigo-400 hover:underline"
+                  >
+                    Change Number
                   </button>
-                );
-              })}
-            </div>
-          </div>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    id="otp-input"
+                    maxLength={6}
+                    placeholder="••••••"
+                    value={otpCode}
+                    onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-center text-lg tracking-widest font-mono text-white placeholder-slate-700 focus:outline-none focus:border-indigo-500"
+                    autoFocus
+                  />
+                </div>
+              </div>
 
-          {/* Primary Action: Continue with Google */}
-          <div className="pt-2 space-y-3">
-            <button
-              type="button"
-              id="google-login-btn"
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              className="w-full py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-bold bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 transition-all flex items-center justify-center gap-3 shadow-lg shadow-white/5 active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-wait"
-            >
-              {isLoading ? (
-                <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
-              )}
-              <span>{isLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
-            </button>
+              {/* Resend Cooldown */}
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-500">Didn&apos;t receive code?</span>
+                {cooldown > 0 ? (
+                  <span className="text-slate-400 font-mono">Resend in {cooldown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleSendOtp()}
+                    disabled={isLoading}
+                    className="text-indigo-400 hover:text-indigo-300 font-semibold"
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </div>
 
-            <p className="text-[11px] text-center text-slate-400">
-              Continue securely with your Google account
+              {/* Verify Button */}
+              <button
+                type="submit"
+                id="verify-otp-btn"
+                disabled={isLoading}
+                className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Verifying...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Verify & Continue</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          <div className="pt-2 text-center border-t border-slate-800/80">
+            <p className="text-[10px] text-slate-500">
+              By continuing, you agree to our Terms of Service. Fast, secure, passwordless authentication.
             </p>
           </div>
-
-          {/* Privacy & Security Guarantees */}
-          <div className="pt-3 border-t border-slate-800 text-[11px] text-slate-400 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
-              <Shield className="w-3.5 h-3.5" />
-              <span>Official Google OAuth 2.0 &bull; OpenID Connect</span>
-            </div>
-            <p className="text-[10px] text-slate-500 leading-relaxed">
-              We only request basic profile info (email, name, picture). We never see or store your Google password.
-            </p>
-          </div>
-        </div>
-
-        {/* Back to Home Link */}
-        <div className="text-center text-xs text-slate-500">
-          <Link href="/" className="hover:text-slate-300 transition-colors inline-flex items-center gap-1">
-            <span>&larr; Back to CareerPilot Overview</span>
-          </Link>
         </div>
       </div>
     </div>
@@ -290,9 +408,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center text-slate-400 text-xs">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-3"></div>
-          <span>Loading CareerPilot Login...</span>
+        <div className="min-h-screen flex items-center justify-center text-slate-400 text-xs">
+          Loading login...
         </div>
       }
     >

@@ -130,12 +130,13 @@ export interface SkillRoadmapDomain {
 }
 
 export interface UserSession {
-  id: string; // Google User ID (sub)
+  id: string; // User ID / UUID
   name: string;
-  email: string;
+  phone: string;
+  email?: string;
   image?: string;
   role: UserRole;
-  provider: 'google' | 'credential';
+  provider: 'phone' | 'credential' | 'supabase';
   expiresAt?: number;
   preferredLanguage?: string;
 }
@@ -143,7 +144,8 @@ export interface UserSession {
 export interface CandidateProfile {
   id: string;
   name: string;
-  email: string;
+  phone?: string;
+  email?: string;
   role: string;
   headline: string;
   yearsExperience: number;
@@ -156,7 +158,6 @@ export interface CandidateProfile {
   interviewReadinessScore?: number;
   trialDaysLeft?: number;
   image?: string;
-  googleId?: string;
   preferredLanguage?: string;
 }
 
