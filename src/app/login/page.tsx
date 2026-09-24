@@ -135,17 +135,37 @@ function LoginContent() {
         {/* Error / Alert Banner if redirected from OAuth with error */}
         {errorInfo && (
           <div
-            className={`p-4 rounded-2xl border text-xs flex items-start gap-3 animate-in fade-in duration-200 ${
+            className={`p-4 rounded-2xl border text-xs flex flex-col gap-2.5 animate-in fade-in duration-200 ${
               errorInfo.type === 'info'
                 ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200'
                 : 'bg-amber-950/30 border-amber-500/40 text-amber-200'
             }`}
           >
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
-            <div className="space-y-0.5">
-              <div className="font-bold text-white">{errorInfo.title}</div>
-              <p className="text-[11px] leading-relaxed text-slate-300">{errorInfo.desc}</p>
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+              <div className="space-y-0.5 flex-1">
+                <div className="font-bold text-white">{errorInfo.title}</div>
+                <p className="text-[11px] leading-relaxed text-slate-300">{errorInfo.desc}</p>
+              </div>
             </div>
+            {errorParam === 'ConfigurationMissing' && (
+              <div className="mt-1 pt-2.5 border-t border-amber-500/20 text-[11px] space-y-1.5 text-slate-300">
+                <div className="font-semibold text-amber-300">Google Cloud Console Setup:</div>
+                <div className="font-mono text-[10px] bg-slate-950/60 p-2.5 rounded-lg space-y-1.5 border border-slate-800 text-slate-300">
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Authorized JavaScript Origin:</span>
+                    <span className="text-cyan-400 select-all">https://careerpilot-git-main-alpha-8569.vercel.app</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Authorized Redirect URI:</span>
+                    <span className="text-indigo-400 select-all">https://careerpilot-git-main-alpha-8569.vercel.app/api/auth/callback/google</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Add <code className="text-amber-300 font-mono">GOOGLE_CLIENT_ID</code> and <code className="text-amber-300 font-mono">GOOGLE_CLIENT_SECRET</code> to Vercel Environment Variables.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

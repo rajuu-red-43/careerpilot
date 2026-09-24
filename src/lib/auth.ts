@@ -7,15 +7,21 @@ import { UserRole, UserSession } from './types';
 
 export const AUTH_CONFIG = {
   // Google OAuth Credentials (server-side only)
-  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
-  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  get googleClientId(): string {
+    return (process.env.GOOGLE_CLIENT_ID || '').trim();
+  },
+  get googleClientSecret(): string {
+    return (process.env.GOOGLE_CLIENT_SECRET || '').trim();
+  },
 
   // Secret key used to sign session cookies with HMAC-SHA256
   // Defaults to a stable fallback in development if NEXTAUTH_SECRET is not provided yet
-  sessionSecret:
-    process.env.NEXTAUTH_SECRET ||
-    process.env.AUTH_SECRET ||
-    'careerpilot-v2-production-hmac-sha256-secret-encryption-token-32chars',
+  get sessionSecret(): string {
+    return (
+      (process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || '').trim() ||
+      'careerpilot-v2-production-hmac-sha256-secret-encryption-token-32chars'
+    );
+  },
 
   // Cookie configuration
   sessionCookieName: 'careerpilot_session',
