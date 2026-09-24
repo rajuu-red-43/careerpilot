@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '../../context/LanguageContext';
 import { useApp } from '../../context/AppContext';
@@ -11,18 +11,22 @@ import {
   User,
   ArrowLeft,
   Sparkles,
-  Lock,
-  Layers,
   Cpu,
 } from 'lucide-react';
+import { UserRole } from '../../lib/types';
 
 export default function SettingsPage() {
-  const { currentLanguage, setLanguage, availableLanguages, setShowOnboardingModal, t, isRtl } =
+  const { currentLanguage, setLanguage, availableLanguages, setShowOnboardingModal, t } =
     useLanguage();
-  const { userName, role, profile } = useApp();
+  const { userName, setUserName, role, setRole, showToast } = useApp();
 
   const [savingCode, setSavingCode] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState(false);
+  const [localName, setLocalName] = useState<string>(userName || '');
+
+  useEffect(() => {
+    setLocalName(userName || '');
+  }, [userName]);
 
   const handleSelectLanguage = async (code: string) => {
     setSavingCode(code);
@@ -32,16 +36,32 @@ export default function SettingsPage() {
     setTimeout(() => setSuccessToast(false), 3500);
   };
 
+  const handleSaveName = (e: React.FormEvent) => {
+    e.preventDefault();
+    setUserName(localName);
+    if (localName.trim()) {
+      showToast(`Personalized greeting updated to "${localName.trim()}".`, 'success');
+    } else {
+      showToast('Personalized greeting name cleared.', 'info');
+    }
+  };
+
+  const perspectives: Array<{ role: UserRole; label: string }> = [
+    { role: 'college_student', label: 'College Student' },
+    { role: 'job_seeker', label: 'Job Seeker' },
+    { role: 'company_recruiter', label: 'Company Recruiter' },
+  ];
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Top Breadcrumb & Return to Dashboard */}
+      {/* Top Breadcrumb */}
       <div className="mb-6 flex items-center justify-between">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>{t('common.back', 'Back')}</span>
+          <span>{t('common.back', 'Back to Home')}</span>
         </Link>
 
         {successToast && (
@@ -66,10 +86,7 @@ export default function SettingsPage() {
               <span className="text-sm font-normal text-slate-400 font-mono">/ भाषा</span>
             </h1>
             <p className="text-sm text-slate-400 mt-1">
-              {t(
-                'settings.subtitle',
-                'Manage your global preferences, language, and account configuration.'
-              )}
+              Customize your visitor experience, interface language, and optional greeting.
             </p>
           </div>
         </div>
@@ -77,37 +94,67 @@ export default function SettingsPage() {
 
       {/* Main Settings Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Account Profile Summary */}
+        {/* Left Column: Optional Visitor Personalization */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm space-y-4">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <User className="w-4 h-4 text-indigo-400" />
-              <span>{t('settings.activeSession', 'Active Session')}</span>
+              <span>Visitor Personalization (Optional)</span>
             </h3>
 
-            <div className="flex items-center gap-3">
-              {profile?.image ? (
-                <img
-                  src={profile.image}
-                  alt={userName || 'User'}
-                  referrerPolicy="no-referrer"
-                  className="w-12 h-12 rounded-xl object-cover border border-slate-700 shadow-md"
+            {/* Display Name Input */}
+            <form onSubmit={handleSaveName} className="space-y-2">
+              <label className="text-[11px] text-slate-400 block font-medium">
+                Personalized Greeting Name:
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={localName}
+                  onChange={e => setLocalName(e.target.value)}
+                  placeholder="e.g. Sarah Chen"
+                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
-              ) : (
-                <div className="w-12 h-12 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-300 font-bold text-lg">
-                  {(userName || 'U')[0].toUpperCase()}
-                </div>
-              )}
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-bold text-white truncate">{userName || 'Authenticated User'}</span>
-                <span className="text-xs text-slate-400 truncate">{profile?.phone || profile?.email || 'Active User'}</span>
-                <span className="text-[10px] text-indigo-400 font-mono uppercase mt-0.5">Role: {role}</span>
+                <button
+                  type="submit"
+                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shrink-0 transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Stored purely in your browser localStorage. No account required.
+              </p>
+            </form>
+
+            {/* Active Perspective Selector */}
+            <div className="pt-3 border-t border-slate-800/80 space-y-2">
+              <label className="text-[11px] text-slate-400 block font-medium">
+                Active Perspective Preview:
+              </label>
+              <div className="grid grid-cols-1 gap-1.5">
+                {perspectives.map(p => (
+                  <button
+                    key={p.role}
+                    type="button"
+                    onClick={() => setRole(p.role)}
+                    className={`px-3 py-2 rounded-xl text-xs text-left font-medium transition-all flex items-center justify-between ${
+                      role === p.role
+                        ? 'bg-indigo-600/20 border border-indigo-500 text-white font-semibold'
+                        : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                    }`}
+                  >
+                    <span>{p.label}</span>
+                    {role === p.role && <Check className="w-3.5 h-3.5 text-indigo-400" />}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-2 text-xs text-slate-400">
+            {/* Active Language Summary */}
+            <div className="pt-3 border-t border-slate-800/80 space-y-2 text-xs text-slate-400">
               <div className="flex justify-between items-center">
-                <span>{t('settings.currentLanguageLabel', 'Active Interface Language')}:</span>
+                <span>Active Language:</span>
                 <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded">
                   {currentLanguage.nativeName} ({currentLanguage.englishName})
                 </span>
@@ -123,14 +170,14 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Security & Token Banner */}
+          {/* Privacy & Open Access Notice */}
           <div className="p-5 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 backdrop-blur-sm">
             <div className="flex items-center gap-2 text-indigo-300 font-semibold text-xs mb-2">
               <ShieldCheck className="w-4 h-4 text-indigo-400" />
-              <span>{t('settings.securitySection', 'Security & Session')}</span>
+              <span>Open Visitor Privacy</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Your session is encrypted via server-side HttpOnly cookies with cryptographic HMAC-SHA256 signature verification.
+              CareerPilot is completely open to visitors. Your language choice and optional personalization name are stored locally in your browser without requiring an account.
             </p>
           </div>
         </div>
@@ -214,7 +261,7 @@ export default function SettingsPage() {
             <div className="mt-6 p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-start gap-3">
               <Cpu className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
               <p className="text-xs text-slate-400 leading-relaxed">
-                <strong className="text-slate-200">AI Prompt Ingestion:</strong> Your selected language is automatically injected into all transparent AI evaluation models, skill roadmaps, and pitch scoring. Universal technical keywords (such as Python, React, Next.js, and SQL) remain preserved for clarity.
+                <strong className="text-slate-200">AI Prompt Ingestion:</strong> Your selected language is automatically applied across all transparent AI evaluation models, skill roadmaps, and pitch scoring. Universal technical keywords (such as Python, React, Next.js, and SQL) remain preserved for clarity.
               </p>
             </div>
           </div>

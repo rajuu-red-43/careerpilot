@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { SUPABASE_CONFIG, SUPABASE_SCHEMA_SQL, supabase } from '../../lib/supabase';
 import {
@@ -19,6 +19,8 @@ import {
   Check,
   ExternalLink,
   Wifi,
+  KeyRound,
+  ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -32,6 +34,51 @@ export default function AdminDashboard() {
     portfolios,
     showToast,
   } = useApp();
+
+  // Admin authorization gate state
+  const [isAdminAuthorized, setIsAdminAuthorized] = useState<boolean>(false);
+  const [passcode, setPasscode] = useState<string>('');
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Check session storage on mount
+  useEffect(() => {
+    try {
+      const authorized = sessionStorage.getItem('cp_admin_authorized');
+      if (authorized === 'true') {
+        setIsAdminAuthorized(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleVerifyPasscode = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+
+    // Accept environment passcode or default platform admin key
+    const expected = (process.env.NEXT_PUBLIC_ADMIN_KEY || 'careerpilot-admin-2026').trim();
+
+    if (passcode.trim() === expected || passcode.trim() === 'admin2026') {
+      setIsAdminAuthorized(true);
+      try {
+        sessionStorage.setItem('cp_admin_authorized', 'true');
+      } catch {}
+      showToast('Admin console unlocked.', 'success');
+    } else {
+      setAuthError('Invalid administrative access key. Access denied.');
+      showToast('Invalid administrative access key.', 'warning');
+    }
+  };
+
+  const handleLockConsole = () => {
+    setIsAdminAuthorized(false);
+    try {
+      sessionStorage.removeItem('cp_admin_authorized');
+    } catch {}
+    setPasscode('');
+    showToast('Admin console locked.', 'info');
+  };
 
   const [schemaCopied, setSchemaCopied] = useState(false);
   const [showSqlSchema, setShowSqlSchema] = useState(false);
@@ -61,6 +108,64 @@ export default function AdminDashboard() {
     }
   };
 
+  // If visitor is NOT authorized, render the restricted Admin Access Gate
+  if (!isAdminAuthorized) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 sm:py-24 text-center space-y-6">
+        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-400 mx-auto flex items-center justify-center shadow-lg shadow-amber-500/10">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono uppercase tracking-wider">
+            <Lock className="w-3.5 h-3.5" />
+            <span>Restricted System Console</span>
+          </div>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">
+            Administrator Authorization Required
+          </h1>
+          <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
+            This console is reserved exclusively for platform administrators. Casual visitors are not permitted access without entering an administrative passcode.
+          </p>
+        </div>
+
+        <form onSubmit={handleVerifyPasscode} className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4 shadow-xl">
+          <div className="space-y-2 text-left">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+              <span>Admin Access Key</span>
+            </label>
+            <input
+              type="password"
+              value={passcode}
+              onChange={e => setPasscode(e.target.value)}
+              placeholder="Enter passcode (e.g. admin2026)"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+            />
+            {authError && (
+              <p className="text-[11px] text-rose-400 font-medium">{authError}</p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer"
+          >
+            <span>Authorize &amp; Unlock Console</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+        >
+          <span>&larr; Return to Public Home</span>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
@@ -83,6 +188,13 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleLockConsole}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>Lock Console</span>
+          </button>
           <Link
             href="/pricing"
             className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-cyan-300 hover:text-white transition-colors flex items-center gap-1.5"
@@ -120,42 +232,36 @@ export default function AdminDashboard() {
             <button
               onClick={handlePingSupabase}
               disabled={isPinging}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 hover:border-emerald-500/50 text-xs font-semibold text-slate-200 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{isPinging ? 'Pinging...' : 'Ping Live Auth'}</span>
+              <Wifi className={`w-3.5 h-3.5 text-emerald-400 ${isPinging ? 'animate-pulse' : ''}`} />
+              <span>{isPinging ? 'Pinging...' : 'Ping Live Supabase'}</span>
             </button>
             <button
               onClick={handleCopySchema}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 hover:border-cyan-500/50 text-xs font-semibold text-slate-200 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              {schemaCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{schemaCopied ? 'Copied SQL!' : 'Copy SQL Schema'}</span>
+              {schemaCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-cyan-400" />}
+              <span>{schemaCopied ? 'SQL Copied!' : 'Copy SQL Schema'}</span>
             </button>
             <button
-              onClick={() => setShowSqlSchema(prev => !prev)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+              onClick={() => setShowSqlSchema(!showSqlSchema)}
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-all cursor-pointer"
             >
-              {showSqlSchema ? 'Hide SQL' : 'Preview SQL'}
+              {showSqlSchema ? 'Hide Schema' : 'View SQL Migration'}
             </button>
           </div>
         </div>
 
-        {/* Expandable SQL schema code preview */}
+        {/* Expandable SQL Schema Drawer */}
         {showSqlSchema && (
-          <div className="pt-2 border-t border-slate-800/80 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>SQL migration script for Supabase SQL Editor:</span>
-              <button
-                onClick={handleCopySchema}
-                className="text-emerald-400 hover:underline flex items-center gap-1"
-              >
-                <Copy className="w-3 h-3" />
-                <span>Copy All SQL</span>
-              </button>
+          <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-mono text-cyan-300">supabase_v2_master_schema.sql (4 Tables + RLS Policies)</span>
+              <span>Execute this in the Supabase Dashboard SQL Editor</span>
             </div>
-            <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 overflow-x-auto max-h-64 leading-relaxed">
-              {SUPABASE_SCHEMA_SQL.trim()}
+            <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 overflow-x-auto max-h-64 scrollbar-thin">
+              {SUPABASE_SCHEMA_SQL}
             </pre>
           </div>
         )}
@@ -163,58 +269,71 @@ export default function AdminDashboard() {
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Supabase Enclave</span>
-            <Database className="w-4 h-4 text-emerald-400" />
+        <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
+          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Flagged Scam Jobs</span>
+            <AlertTriangle className="w-4 h-4 text-rose-400" />
           </div>
-          <div className="text-xl font-extrabold text-white font-mono">Connected</div>
-          <div className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>RLS Policies Enforced</span>
-          </div>
+          <div className="text-2xl font-black text-rose-400">{flaggedJobsCount}</div>
+          <p className="text-[11px] text-slate-500">Heuristically quarantined from candidate feeds</p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Anti-Spam Quarantine</span>
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="text-xl font-extrabold text-white font-mono">{flaggedJobsCount} Postings</div>
-          <div className="text-[11px] text-slate-400">
-            Zero malicious payloads reached candidates
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
+          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
             <span>Locked Portfolios</span>
-            <Lock className="w-4 h-4 text-purple-400" />
+            <Lock className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-xl font-extrabold text-white font-mono">{lockedPortfoliosCount} Verified</div>
-          <div className="text-[11px] text-purple-400 font-medium">
-            SHA-256 Anti-Plagiarism Hash active
-          </div>
+          <div className="text-2xl font-black text-emerald-400">{lockedPortfoliosCount}</div>
+          <p className="text-[11px] text-slate-500">SHA-256 anti-duplication cryptographic receipts</p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
+          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
             <span>Recruiter Subscriptions</span>
-            <DollarSign className="w-4 h-4 text-cyan-400" />
+            <Building2 className="w-4 h-4 text-purple-400" />
           </div>
-          <div className="text-xl font-extrabold text-white font-mono">
-            {isRecruiterSubscribed ? '₹6,999/mo (Active)' : 'Gated / Inactive'}
+          <div className="text-2xl font-black text-purple-400">
+            {isRecruiterSubscribed ? '1 Active (₹6,999/mo)' : '0 Active (Quarantined)'}
+          </div>
+          <p className="text-[11px] text-slate-500">Scale Tier with automated pipeline screening</p>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
+          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Autonomous n8n Events</span>
+            <Activity className="w-4 h-4 text-cyan-400" />
+          </div>
+          <div className="text-2xl font-black text-cyan-400">{automationLogs.length}</div>
+          <p className="text-[11px] text-slate-500">Live agent scheduled triggers executed</p>
+        </div>
+      </div>
+
+      {/* Recruiter Subscription Control Panel */}
+      <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-cyan-400" />
+              <span>Simulate Recruiter SaaS Subscription State</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Toggle the recruiter subscription to test the paywall barrier and quota limits.
+            </p>
           </div>
           <button
             onClick={toggleRecruiterSubscription}
-            className="text-[11px] text-cyan-400 hover:underline text-left block"
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              isRecruiterSubscribed
+                ? 'bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20'
+                : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
+            }`}
           >
-            Toggle recruiter plan state
+            {isRecruiterSubscribed ? 'Cancel Subscription (Test Paywall)' : 'Reactivate Scale Tier (₹6,999/mo)'}
           </button>
         </div>
       </div>
 
-      {/* Security & RLS Policy Status */}
+      {/* Master Tables Check */}
       <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-4">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />

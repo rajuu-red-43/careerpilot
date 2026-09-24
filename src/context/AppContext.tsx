@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   UserRole,
+  VisitorPreferences,
   CandidateProfile,
   JobPosting,
   Application,
@@ -27,10 +28,13 @@ import { languageService } from '../lib/languageService';
 interface AppContextType {
   role: UserRole;
   setRole: (role: UserRole) => void;
-  // Auth state
-  isLoggedIn: boolean;
   userName: string;
+  setUserName: (name: string) => void;
+  visitorPreferences: VisitorPreferences;
+  updateVisitorPreferences: (prefs: Partial<VisitorPreferences>) => void;
   isHydrated: boolean;
+  // Unauthenticated guest stubs for backwards compatibility
+  isLoggedIn: boolean;
   login: (name: string, role: UserRole) => void;
   logout: () => void;
   profile: CandidateProfile;
@@ -114,7 +118,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [role, setRoleState] = useState<UserRole>('job_seeker');
-  const [userName, setUserName] = useState<string>('');
+  const [userName, setUserNameState] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
   const [jobs, setJobs] = useState<JobPosting[]>(defaultJobs);
@@ -153,82 +157,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // v2: Internships
   const [internships, setInternships] = useState<InternshipPosting[]>(mockInternships);
 
-  // Hydrate auth state from server session (/api/auth/session) or localStorage
+  // Visitor Preferences (Anonymous personalization stored in localStorage)
+  const [visitorPreferences, setVisitorPreferences] = useState<VisitorPreferences>({
+    language: 'en',
+    displayName: '',
+    selectedRole: 'job_seeker',
+  });
+
+  // Hydrate visitor preferences from localStorage
   useEffect(() => {
     let isMounted = true;
 
-    async function checkAuthSession() {
-      // 1. First check server-side signed session
-      try {
-        const res = await fetch('/api/auth/session');
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.authenticated && data.user && isMounted) {
-            const userRole = (data.user.role || 'college_student') as UserRole;
-            setIsLoggedIn(true);
-            setRoleState(userRole);
-            setUserName(data.user.name || '');
+    try {
+      const savedPrefs = localStorage.getItem('careerpilot_visitor_preferences');
+      if (savedPrefs && isMounted) {
+        const parsed = JSON.parse(savedPrefs);
+        if (parsed) {
+          const prefRole = (parsed.selectedRole as UserRole) || 'job_seeker';
+          const prefName = parsed.displayName || '';
+          setVisitorPreferences({
+            language: parsed.language || 'en',
+            displayName: prefName,
+            selectedRole: prefRole,
+          });
+          setRoleState(prefRole);
+          setUserNameState(prefName);
 
-            const baseProfile = mockCandidateProfiles[userRole] || mockCandidateProfiles['college_student'];
-            setProfile({
-              ...baseProfile,
-              name: data.user.name || baseProfile.name,
-              phone: data.user.phone || '',
-              email: data.user.email || baseProfile.email,
-              image: data.user.image,
-              preferredLanguage: data.user.preferredLanguage || 'en',
-            });
-
-            try {
-              localStorage.setItem(
-                'careerpilot_auth',
-                JSON.stringify({
-                  isLoggedIn: true,
-                  userName: data.user.name || '',
-                  role: userRole,
-                })
-              );
-            } catch {
-              // ignore localStorage write errors
-            }
-            return;
-          }
+          const baseProfile = mockCandidateProfiles[prefRole] || mockCandidateProfiles['job_seeker'];
+          setProfile(prev => ({
+            ...baseProfile,
+            name: prefName || baseProfile.name,
+            phone: prev?.phone,
+            email: prev?.email || baseProfile.email,
+          }));
         }
-      } catch (err) {
-        console.warn('Session check skipped or failed:', err);
       }
-
-      // 2. Fallback to localStorage for client-persisted demo role sessions
-      try {
-        const savedAuth = localStorage.getItem('careerpilot_auth');
-        if (savedAuth && isMounted) {
-          const parsed = JSON.parse(savedAuth);
-          if (parsed && parsed.isLoggedIn && parsed.role) {
-            setIsLoggedIn(true);
-            setRoleState(parsed.role);
-            const name = parsed.userName || '';
-            setUserName(name);
-            const baseProfile = mockCandidateProfiles[parsed.role as UserRole];
-            if (baseProfile) {
-              setProfile(prev => ({
-                ...baseProfile,
-                name: name || baseProfile.name,
-                image: prev?.image,
-                phone: prev?.phone,
-              }));
-            }
-          }
-        }
-      } catch {
-        // LocalStorage access may fail in private mode or SSR
-      } finally {
-        if (isMounted) {
-          setIsHydrated(true);
-        }
+    } catch {
+      // LocalStorage access may fail in private mode or SSR
+    } finally {
+      if (isMounted) {
+        setIsHydrated(true);
       }
     }
-
-    checkAuthSession();
 
     // Hydrate portfolio lock state
     try {
@@ -268,75 +238,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }, 4500);
   };
 
-  const login = (name: string, newRole: UserRole) => {
-    const trimmedName = name.trim();
-    setIsLoggedIn(true);
-    setRoleState(newRole);
-    setUserName(trimmedName);
-
-    const baseProfile = mockCandidateProfiles[newRole];
-    setProfile(prev => ({
-      ...baseProfile,
-      name: trimmedName || baseProfile.name,
-      image: prev?.image,
-      phone: prev?.phone,
-    }));
-
-    try {
-      localStorage.setItem(
-        'careerpilot_auth',
-        JSON.stringify({
-          isLoggedIn: true,
-          userName: trimmedName,
-          role: newRole,
-        })
-      );
-    } catch {
-      // ignore
-    }
-
-    const roleLabels: Record<UserRole, string> = {
-      college_student: 'Student',
-      job_seeker: 'Job Seeker',
-      company_recruiter: 'Company Recruiter',
-      admin: 'System Admin',
-    };
-    showToast(`Welcome, ${trimmedName || roleLabels[newRole]}! Signed in as ${roleLabels[newRole]}.`, 'success');
+  const updateVisitorPreferences = (prefs: Partial<VisitorPreferences>) => {
+    setVisitorPreferences(prev => {
+      const updated: VisitorPreferences = {
+        language: prefs.language ?? prev.language,
+        displayName: prefs.displayName !== undefined ? prefs.displayName : prev.displayName,
+        selectedRole: prefs.selectedRole ?? prev.selectedRole,
+      };
+      if (prefs.selectedRole) {
+        setRoleState(prefs.selectedRole);
+      }
+      if (prefs.displayName !== undefined) {
+        setUserName(prefs.displayName);
+      }
+      try {
+        localStorage.setItem('careerpilot_visitor_preferences', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
   };
 
-  const logout = () => {
-    setIsLoggedIn(false);
-    setUserName('');
-    try {
-      localStorage.removeItem('careerpilot_auth');
-    } catch {
-      // ignore
-    }
-    // Call server-side logout to destroy the HttpOnly session cookie
-    fetch('/api/auth/logout', { method: 'POST' }).catch(err => {
-      console.warn('Server logout error:', err);
-    });
-    showToast('Signed out successfully. Please select your role to continue.', 'info');
+  const setUserName = (name: string) => {
+    const trimmed = name.trim();
+    setUserName(trimmed);
+    updateVisitorPreferences({ displayName: trimmed });
+    setProfile(prev => ({
+      ...prev,
+      name: trimmed || prev.name,
+    }));
   };
 
   const setRole = (newRole: UserRole) => {
     setRoleState(newRole);
+    updateVisitorPreferences({ selectedRole: newRole });
     const baseProfile = mockCandidateProfiles[newRole];
-    setProfile(prev => ({
-      ...baseProfile,
-      name: userName || baseProfile.name,
-    }));
-    if (isLoggedIn) {
-      try {
-        localStorage.setItem(
-          'careerpilot_auth',
-          JSON.stringify({
-            isLoggedIn: true,
-            userName,
-            role: newRole,
-          })
-        );
-      } catch {}
+    if (baseProfile) {
+      setProfile({
+        ...baseProfile,
+        name: userName || baseProfile.name,
+      });
     }
     const roleLabels: Record<UserRole, string> = {
       college_student: 'Student View',
@@ -344,7 +286,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       company_recruiter: 'Recruiter View',
       admin: 'Admin Operations',
     };
-    showToast(`Switched active mode to ${roleLabels[newRole]}`, 'info');
+    showToast(`Switched active view to ${roleLabels[newRole]}`, 'info');
+  };
+
+  // Backwards-compatible stubs for any existing components
+  const login = (name: string, newRole: UserRole) => {
+    const trimmed = name.trim();
+    updateVisitorPreferences({ displayName: trimmed, selectedRole: newRole });
+    if (trimmed) {
+      showToast(`Welcome, ${trimmed}!`, 'success');
+    } else {
+      showToast('Personalization preferences updated.', 'success');
+    }
+  };
+
+  const logout = () => {
+    updateVisitorPreferences({ displayName: '' });
+    showToast('Visitor preferences cleared.', 'info');
   };
 
   const updateProfileSkills = (newSkills: string[]) => {
@@ -543,8 +501,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
 
     let clarityScore = Math.min(Math.max(wordCount * 1.5, 60), 96);
-    let technicalDepthScore = mentionsTech ? 92 : 68;
-    let impactScore = mentionsMetric ? 95 : 70;
+    const technicalDepthScore = mentionsTech ? 92 : 68;
+    const impactScore = mentionsMetric ? 95 : 70;
 
     if (mentionsProblem) clarityScore += 4;
     const finalScore = Math.round((clarityScore * 0.35 + technicalDepthScore * 0.35 + impactScore * 0.3));
@@ -710,8 +668,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         role,
         setRole,
-        isLoggedIn,
         userName,
+        setUserName,
+        visitorPreferences,
+        updateVisitorPreferences,
+        isLoggedIn,
         isHydrated,
         login,
         logout,

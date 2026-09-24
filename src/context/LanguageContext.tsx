@@ -7,7 +7,6 @@ import {
   DEFAULT_LANGUAGE,
   getLanguage,
   isSupportedLanguage,
-  isRtlLanguage,
 } from '../i18n/languages';
 import { translateKey } from '../i18n/config';
 
@@ -60,7 +59,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         // ignore localStorage access issues
       }
 
-      // 2. Fetch authenticated preference from server
+      // 2. Fetch language preference from server-side cookie
       try {
         const res = await fetch('/api/user/preferences');
         if (res.ok) {
@@ -75,7 +74,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch {
-        // If unauthenticated or offline, keep cached or default
+        // If offline, keep cached or default
       }
     }
 
@@ -86,7 +85,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     };
   }, [applyHtmlAttributes]);
 
-  // Set language and persist across database, session, and local storage
+  // Set language and persist across browser cookie and local storage
   const setLanguage = useCallback(
     async (code: string) => {
       const cleanCode = code.trim().toLowerCase();
@@ -101,7 +100,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('careerpilot_language', cleanCode);
       } catch {}
 
-      // Persist to server session and database
+      // Persist to visitor preferences cookie
       setIsLoading(true);
       try {
         await fetch('/api/user/preferences', {

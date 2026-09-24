@@ -232,7 +232,7 @@ export default function JobSeekerDashboard() {
           </div>
 
           <p className="text-xs text-slate-400 flex flex-wrap items-center gap-2">
-            <span>Authenticated as <strong className="text-slate-200">{profile.name}</strong> &bull; {profile.headline}</span>
+            <span>Candidate Persona: <strong className="text-slate-200">{profile.name}</strong> &bull; {profile.headline}</span>
           </p>
 
           {/* Trial countdown & Privacy Badge */}

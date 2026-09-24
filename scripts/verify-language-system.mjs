@@ -29,7 +29,7 @@ console.log(`   ${sindhiRtl ? '✅' : '❌'} Sindhi (sd) RTL: ${sindhiRtl}`);
 console.log(`   ${!tamilLtr ? '✅' : '❌'} Tamil (ta) LTR: ${!tamilLtr}`);
 
 console.log('\n3️⃣ Translation Dictionaries Audit:');
-const testKeys = ['common.appName', 'nav.student', 'settings.preferredLanguage', 'jobs.applyNow', 'auth.continueWithGoogle'];
+const testKeys = ['common.appName', 'nav.student', 'settings.preferredLanguage', 'jobs.applyNow', 'nav.jobs'];
 for (const key of testKeys) {
   const enVal = translateKey('en', key);
   const hiVal = translateKey('hi', key);

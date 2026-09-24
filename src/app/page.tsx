@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useApp } from '../context/AppContext';
 import { UserRole } from '../lib/types';
 import {
@@ -12,131 +11,29 @@ import {
   Building2,
   ShieldCheck,
   Cpu,
-  Layers,
   Sparkles,
   ArrowRight,
   CheckCircle2,
-  Lock,
   GitCompare,
-  TrendingUp,
-  AlertCircle,
-  ChevronDown,
+  BookOpen,
   User,
-  LogOut,
   Check,
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function LandingPage() {
-  const { role, userName, isLoggedIn, isHydrated, login, logout, showToast } = useApp();
-  const router = useRouter();
+  const { role, setRole, userName, setUserName, isHydrated, showToast } = useApp();
+  const { t } = useLanguage();
 
-  // Login form state
-  const [selectedRole, setSelectedRole] = useState<UserRole>(role || 'job_seeker');
-  const [enteredName, setEnteredName] = useState<string>('');
+  // Local state for optional greeting name input
+  const [tempName, setTempName] = useState<string>(userName || '');
 
-  // Default suggested names per role
-  const rolePresets: Record<UserRole, { defaultName: string; title: string; subtitle: string; icon: React.ElementType; color: string; badge: string; description: string; highlights: string[] }> = {
-    college_student: {
-      defaultName: 'Alex Patel',
-      title: 'College Student',
-      subtitle: 'Learn & Plan',
-      icon: GraduationCap,
-      color: 'blue',
-      badge: 'Student Portal',
-      description: 'Explore multi-year roadmaps (1st to 4th year), tech demand predictions, and interactive skill gap detectors.',
-      highlights: [
-        'Domain Roadmaps (AI, Web, DevOps, Core)',
-        '2024–2028 Tech Demand Projections',
-        'Actionable Skill Gap Checklists',
-      ],
-    },
-    job_seeker: {
-      defaultName: 'Sarah Chen',
-      title: 'Job Seeker',
-      subtitle: 'Match & Apply',
-      icon: Briefcase,
-      color: 'emerald',
-      badge: 'Featured Mode',
-      description: 'Upload real resumes (PDF/DOCX), inspect transparent fit scoring formulas, view tailored diffs, and approve before submit.',
-      highlights: [
-        'Real PDF / DOCX Resume File Parser',
-        'Explainable "Why This Score" Formulas',
-        'Mandatory Human Sign-off Checkpoint',
-      ],
-    },
-    company_recruiter: {
-      defaultName: 'Marcus Vance',
-      title: 'Company Recruiter',
-      subtitle: 'Sieve & Hire',
-      icon: Building2,
-      color: 'purple',
-      badge: 'Recruiter Portal',
-      description: 'Post jobs with duplicate/fake detection heuristics, and inspect transparent candidate fit vectors without spam.',
-      highlights: [
-        'Duplicate & Fake Job Heuristics Detector',
-        'High-Fit Ranked Candidate Pipeline',
-        'Auditable Transparency Panel',
-      ],
-    },
-    admin: {
-      defaultName: 'Alexa Reynolds',
-      title: 'Platform Admin',
-      subtitle: 'Audit & Govern',
-      icon: ShieldCheck,
-      color: 'amber',
-      badge: 'Admin Console',
-      description: 'Monitor Supabase RLS row-level security policies, spam quarantine telemetry, and SaaS monetization performance.',
-      highlights: [
-        'Supabase RLS & Local Enclave Audit',
-        'Recruiter Spam Filter Quarantine',
-        'MRR Health & Subscription Gating',
-      ],
-    },
-  };
-
-  // Sync initial input name with role preset or logged-in user
+  // Keep tempName in sync if userName changes in context
   useEffect(() => {
-    if (isHydrated) {
-      if (isLoggedIn && userName) {
-        setEnteredName(userName);
-        setSelectedRole(role);
-      } else if (!enteredName) {
-        setEnteredName(rolePresets[selectedRole].defaultName);
-      }
+    if (userName) {
+      setTempName(userName);
     }
-  }, [isHydrated, isLoggedIn, role, userName]);
-
-  // When user clicks a role card, if name is currently a default preset or empty, update to the new role's default preset
-  const handleSelectRole = (newRole: UserRole) => {
-    setSelectedRole(newRole);
-    // If the input was empty or matched one of the other defaults, switch it smoothly
-    const currentNameIsPreset = Object.values(rolePresets).some(p => p.defaultName === enteredName);
-    if (!enteredName.trim() || currentNameIsPreset) {
-      setEnteredName(rolePresets[newRole].defaultName);
-    }
-  };
-
-  // Login handler
-  const handleLoginSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-
-    const finalName = enteredName.trim() || rolePresets[selectedRole].defaultName;
-    login(finalName, selectedRole);
-
-    if (selectedRole === 'college_student') {
-      router.push('/student');
-    } else if (selectedRole === 'company_recruiter') {
-      router.push('/recruiter');
-    } else if (selectedRole === 'admin') {
-      router.push('/admin');
-    } else {
-      router.push('/job-seeker');
-    }
-  };
-
-  const handleOpenLogin = () => {
-    router.push(`/login?role=${selectedRole}&callbackUrl=${encodeURIComponent(getDashboardHrefForRole(selectedRole))}`);
-  };
+  }, [userName]);
 
   // Eye cursor tracking state & refs
   const [pupilOffset, setPupilOffset] = useState({ x: 0, y: 0 });
@@ -197,55 +94,90 @@ export default function LandingPage() {
     };
   }, []);
 
-  // Smooth scroll down to login section
-  const handleScrollDown = () => {
-    const nextSection = document.getElementById('role-gateways');
-    if (nextSection) {
-      nextSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const handleSaveName = (e: React.FormEvent) => {
+    e.preventDefault();
+    setUserName(tempName);
+    if (tempName.trim()) {
+      showToast(`Welcome, ${tempName.trim()}! Personalized greeting saved locally.`, 'success');
+    } else {
+      showToast('Greeting name cleared.', 'info');
     }
   };
 
-  const getDashboardHrefForRole = (r: UserRole) => {
-    if (r === 'college_student') return '/student';
-    if (r === 'company_recruiter') return '/recruiter';
-    if (r === 'admin') return '/admin';
-    return '/job-seeker';
-  };
+  const perspectives: Array<{
+    role: UserRole;
+    title: string;
+    subtitle: string;
+    icon: React.ElementType;
+    color: string;
+    borderActive: string;
+    bgActive: string;
+    href: string;
+    cta: string;
+    description: string;
+    highlights: string[];
+  }> = [
+    {
+      role: 'college_student',
+      title: 'College Student',
+      subtitle: 'Learn & Plan',
+      icon: GraduationCap,
+      color: 'blue',
+      borderActive: 'border-blue-500/80 ring-2 ring-blue-500/30',
+      bgActive: 'bg-blue-950/40',
+      href: '/student',
+      cta: 'Explore Student Hub',
+      description: 'Explore multi-year curriculum roadmaps (1st–4th year), tech demand forecasts, and skill gap checklists with verified free courses.',
+      highlights: [
+        'Domain Roadmaps (AI, Web, DevOps, Core)',
+        '2024–2028 Tech Demand Projections',
+        'Actionable Skill Gap Checklists & Courses',
+      ],
+    },
+    {
+      role: 'job_seeker',
+      title: 'Job Seeker',
+      subtitle: 'Match & Apply',
+      icon: Briefcase,
+      color: 'emerald',
+      borderActive: 'border-emerald-500/80 ring-2 ring-emerald-500/30',
+      bgActive: 'bg-emerald-950/40',
+      href: '/job-seeker',
+      cta: 'Explore Job Seeker Portal',
+      description: 'Upload real resumes (PDF/DOCX), inspect transparent fit scoring formulas, view tailored diffs, and approve before submit.',
+      highlights: [
+        'Real PDF / DOCX Resume File Parser',
+        'Explainable "Why This Score" Formulas',
+        'Mandatory Human Sign-off Checkpoint',
+      ],
+    },
+    {
+      role: 'company_recruiter',
+      title: 'Company Recruiter',
+      subtitle: 'Sieve & Hire',
+      icon: Building2,
+      color: 'purple',
+      borderActive: 'border-purple-500/80 ring-2 ring-purple-500/30',
+      bgActive: 'bg-purple-950/40',
+      href: '/recruiter',
+      cta: 'Explore Recruiter Tools',
+      description: 'Post jobs with duplicate/fake detection heuristics, and inspect transparent candidate fit vectors without spam.',
+      highlights: [
+        'Duplicate & Fake Job Heuristics Detector',
+        'High-Fit Ranked Candidate Pipeline',
+        'Auditable Transparency Panel',
+      ],
+    },
+  ];
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] flex flex-col justify-between overflow-hidden">
-      {/* Self-contained CSS keyframes and reduced-motion rules */}
-      <style jsx global>{`
-        @keyframes floatBounce {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(clamp(-0.45rem, -0.9vh, -0.3rem));
-          }
-        }
-
-        .scroll-indicator-float {
-          animation: floatBounce 1.5s ease-in-out infinite;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .scroll-indicator-float {
-            animation: none !important;
-          }
-          .pupil-animated {
-            transition: none !important;
-            transform: none !important;
-          }
-        }
-      `}</style>
-
       {/* Background ambient gradient orbs */}
       <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[clamp(20rem,50vw,45rem)] h-[clamp(12rem,30vh,22rem)] bg-indigo-500/10 blur-[130px] rounded-full pointer-events-none -z-10"></div>
       <div className="absolute top-80 right-10 w-[clamp(15rem,35vw,25rem)] h-[clamp(10rem,25vh,18rem)] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none -z-10"></div>
       <div className="absolute bottom-10 left-10 w-[clamp(18rem,40vw,30rem)] h-[clamp(10rem,25vh,20rem)] bg-purple-500/10 blur-[140px] rounded-full pointer-events-none -z-10"></div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-[clamp(2rem,4vh,3.5rem)] space-y-[clamp(2rem,4vh,3.5rem)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-[clamp(2rem,4vh,3.5rem)] space-y-[clamp(2.5rem,5vh,4rem)]">
         {/* Hero Section */}
         <div className="text-center max-w-3xl mx-auto space-y-[clamp(1.2rem,2.5vh,1.8rem)] flex flex-col items-center">
           {/* Micro-Interaction: Eye-Following Cursor Animation */}
@@ -352,7 +284,7 @@ export default function LandingPage() {
 
           <div className="inline-flex items-center gap-2 px-[clamp(0.6rem,1.2vw,0.9rem)] py-[clamp(0.25rem,0.5vh,0.4rem)] rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-[clamp(0.7rem,0.85vw,0.8rem)] font-semibold backdrop-blur">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span>Problem Statement AA-35 &bull; Autonomous Job-Search Agent</span>
+            <span>Problem Statement AA-35 &bull; Autonomous Career &amp; Job Platform</span>
           </div>
 
           <h1 className="text-[clamp(2.2rem,5vw+1rem,3.8rem)] font-extrabold tracking-tight text-white leading-[1.12]">
@@ -365,7 +297,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-[clamp(0.875rem,1.1vw,1.125rem)] text-slate-400 leading-relaxed max-w-2xl mx-auto">
-            CareerPilot scans matching roles, computes transparent match vectors, tailors resumes with visible diffs, and enforces a mandatory human approval checkpoint before any submission.
+            CareerPilot is completely open to all visitors without accounts or logins. Scan matching opportunities, inspect transparent fit formulas, close skill gaps with verified courses, and explore freely.
           </p>
 
           {/* Quick Metrics Bar */}
@@ -384,401 +316,144 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Scroll Down Button */}
-          <div className="pt-[clamp(0.5rem,1.5vh,1.25rem)]">
-            <button
-              onClick={handleScrollDown}
-              className="scroll-indicator-float inline-flex items-center gap-[clamp(0.4rem,0.8vw,0.6rem)] px-[clamp(0.9rem,1.8vw,1.4rem)] py-[clamp(0.45rem,1vh,0.7rem)] rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 hover:border-cyan-500/50 shadow-[0_4px_16px_rgba(0,0,0,0.4)] backdrop-blur-md transition-colors duration-200 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
-              aria-label="Scroll down to sign in"
+          {/* Direct Product Exploration CTAs */}
+          <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/job-seeker"
+              className="px-6 py-3.5 rounded-2xl text-sm font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2"
             >
-              <span className="text-[clamp(0.72rem,0.85vw,0.825rem)] font-medium tracking-wide">
-                Role Sign-In Screen
-              </span>
-              <ChevronDown className="w-[clamp(0.85rem,1vw,1rem)] h-[clamp(0.85rem,1vw,1rem)] text-cyan-400 group-hover:translate-y-0.5 transition-transform" />
-            </button>
+              <Briefcase className="w-4 h-4" />
+              <span>Browse Jobs &amp; Opportunities</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            <Link
+              href="/learn"
+              className="px-5 py-3.5 rounded-2xl text-sm font-semibold bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700/80 hover:border-cyan-500/50 transition-all flex items-center gap-2 shadow-lg"
+            >
+              <BookOpen className="w-4 h-4 text-cyan-400" />
+              <span>Explore Learning &amp; Skills</span>
+            </Link>
+
+            <Link
+              href="/compare"
+              className="px-5 py-3.5 rounded-2xl text-sm font-semibold bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700/80 hover:border-indigo-500/50 transition-all flex items-center gap-2 shadow-lg"
+            >
+              <GitCompare className="w-4 h-4 text-indigo-400" />
+              <span>Career Paths &amp; Compare</span>
+            </Link>
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* PROPER ROLE-BASED LOGIN SCREEN (REQUIREMENT 1) */}
+        {/* OPTIONAL PERSONALIZATION & PERSPECTIVE EXPLORER */}
         {/* ========================================================================= */}
         <section
-          id="role-gateways"
-          className="space-y-6 pt-4 scroll-mt-[clamp(4rem,8vh,6rem)] max-w-5xl mx-auto"
+          id="explore-perspectives"
+          className="space-y-6 pt-4 max-w-5xl mx-auto"
         >
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-cyan-500/15 via-indigo-500/15 to-purple-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
-              <User className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Role-Based Authentication Gateway</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Optional Visitor Personalization</span>
             </div>
             <h2 className="text-[clamp(1.5rem,2.5vw,2rem)] font-extrabold text-white tracking-tight">
-              Select Your Role &amp; Sign In
+              {userName ? `Welcome, ${userName}` : 'Welcome to CareerPilot'}
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
-              Choose your perspective (Student, Job Seeker, or Company Recruiter) and enter your name to unlock role-tailored navigation and tools.
+              No account or signup is required. You can jump straight into any workspace or optionally personalize your greeting below.
             </p>
           </div>
 
-          {/* Active Session Callout (if already logged in) */}
-          {isHydrated && isLoggedIn && (
-            <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
-                  <Check className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Currently Authenticated:</span>
-                    <span className="text-xs font-bold text-white px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
-                      {userName || rolePresets[role].defaultName}
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                      {rolePresets[role].title}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    Your navbar is filtered to {rolePresets[role].title} pages only.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                <Link
-                  href={getDashboardHrefForRole(role)}
-                  className="flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-500/20 text-center"
-                >
-                  Go to Dashboard ➔
-                </Link>
-                <button
-                  onClick={logout}
-                  className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:border-rose-500/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Logout / Switch Role</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Interactive Login Card */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
-            {/* Step 1: Role Selection Cards */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
-                <span>Step 1: Select Your Role</span>
-                <span className="text-[11px] text-indigo-400 lowercase font-normal">
-                  (Determines visible navbar tabs)
-                </span>
-              </label>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                {/* 1. College Student */}
+          {/* Perspective Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {perspectives.map(p => {
+              const Icon = p.icon;
+              const isCurrent = role === p.role;
+              return (
                 <div
-                  onClick={() => handleSelectRole('college_student')}
-                  className={`group relative rounded-2xl p-4 border cursor-pointer transition-all duration-300 flex flex-col justify-between ${
-                    selectedRole === 'college_student'
-                      ? 'bg-blue-950/40 border-blue-500/80 shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30'
-                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-950/90'
+                  key={p.role}
+                  className={`rounded-2xl p-5 border transition-all duration-300 flex flex-col justify-between ${
+                    isCurrent
+                      ? `${p.bgActive} ${p.borderActive} shadow-xl`
+                      : 'bg-slate-900/70 border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  {selectedRole === 'college_student' && (
-                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-md">
-                      <Check className="w-3.5 h-3.5" />
-                    </div>
-                  )}
-
-                  <div className="space-y-2.5">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                        selectedRole === 'college_student'
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
-                          : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
-                      }`}
-                    >
-                      <GraduationCap className="w-4 h-4" />
-                    </div>
-
-                    <div>
-                      <h3 className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">
-                        College Student
-                      </h3>
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 mt-0.5 inline-block">
-                        Learn &amp; Plan
-                      </span>
-                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
-                        Curriculum roadmaps, tech demand forecasts, and skill gap checklists with free courses.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-800/80 mt-3 text-[10px] text-blue-400 font-medium">
-                    Navbar: Dashboard &bull; Roadmap &bull; Internships
-                  </div>
-                </div>
-
-                {/* 2. Job Seeker */}
-                <div
-                  onClick={() => handleSelectRole('job_seeker')}
-                  className={`group relative rounded-2xl p-4 border cursor-pointer transition-all duration-300 flex flex-col justify-between ${
-                    selectedRole === 'job_seeker'
-                      ? 'bg-emerald-950/40 border-emerald-500/80 shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-500/30'
-                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-950/90'
-                  }`}
-                >
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                    {selectedRole === 'job_seeker' ? (
-                      <div className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-md">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-white">
+                        <Icon className="w-5 h-5 text-indigo-400" />
                       </div>
-                    ) : (
-                      <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        Featured
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-400">
+                        {p.subtitle}
                       </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                        selectedRole === 'job_seeker'
-                          ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30'
-                          : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                      }`}
-                    >
-                      <Briefcase className="w-4 h-4" />
                     </div>
 
                     <div>
-                      <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
-                        Job Seeker
-                      </h3>
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 mt-0.5 inline-block">
-                        Match &amp; Apply
-                      </span>
-                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
-                        PDF/DOCX file upload, transparent score formulas, radar fit &amp; human sign-off checkpoint.
+                      <h3 className="text-base font-bold text-white">{p.title}</h3>
+                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                        {p.description}
                       </p>
                     </div>
+
+                    <ul className="space-y-1.5 pt-2 text-[11px] text-slate-300">
+                      {p.highlights.map((h, i) => (
+                        <li key={i} className="flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>{h}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-800/80 mt-3 text-[10px] text-emerald-400 font-medium">
-                    Navbar: Dashboard &bull; Compare &bull; Applications
-                  </div>
-                </div>
+                  <div className="pt-5 mt-4 border-t border-slate-800/80 flex flex-col gap-2">
+                    <Link
+                      href={p.href}
+                      className="w-full py-2.5 px-3 rounded-xl text-xs font-bold text-center bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-500/20 flex items-center justify-center gap-1.5"
+                    >
+                      <span>{p.cta}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
 
-                {/* 3. Company Recruiter */}
-                <div
-                  onClick={() => handleSelectRole('company_recruiter')}
-                  className={`group relative rounded-2xl p-4 border cursor-pointer transition-all duration-300 flex flex-col justify-between ${
-                    selectedRole === 'company_recruiter'
-                      ? 'bg-purple-950/40 border-purple-500/80 shadow-lg shadow-purple-500/20 ring-2 ring-purple-500/30'
-                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-950/90'
-                  }`}
-                >
-                  {selectedRole === 'company_recruiter' && (
-                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-md">
-                      <Check className="w-3.5 h-3.5" />
-                    </div>
-                  )}
-
-                  <div className="space-y-2.5">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                        selectedRole === 'company_recruiter'
-                          ? 'bg-purple-600 text-white shadow-md shadow-purple-500/30'
-                          : 'bg-purple-500/10 border border-purple-500/20 text-purple-400'
+                    <button
+                      type="button"
+                      onClick={() => setRole(p.role)}
+                      className={`text-[11px] font-medium py-1 transition-colors ${
+                        isCurrent
+                          ? 'text-indigo-300 font-semibold'
+                          : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      <Building2 className="w-4 h-4" />
-                    </div>
-
-                    <div>
-                      <h3 className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">
-                        Company Recruiter
-                      </h3>
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20 mt-0.5 inline-block">
-                        Sieve &amp; Hire
-                      </span>
-                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
-                        Anti-spam quarantine drawer, duplicate/scam heuristics, and auditable talent vectors.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-800/80 mt-3 text-[10px] text-purple-400 font-medium">
-                    Navbar: Dashboard &bull; Post Job &bull; Pipeline
+                      {isCurrent ? '✓ Active Perspective Preview' : 'Preview this perspective'}
+                    </button>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                {/* 4. Platform Admin */}
-                <div
-                  onClick={() => handleSelectRole('admin')}
-                  className={`group relative rounded-2xl p-4 border cursor-pointer transition-all duration-300 flex flex-col justify-between ${
-                    selectedRole === 'admin'
-                      ? 'bg-amber-950/40 border-amber-500/80 shadow-lg shadow-amber-500/20 ring-2 ring-amber-500/30'
-                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-950/90'
-                  }`}
-                >
-                  {selectedRole === 'admin' && (
-                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-md">
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    </div>
-                  )}
-
-                  <div className="space-y-2.5">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                        selectedRole === 'admin'
-                          ? 'bg-amber-600 text-white shadow-md shadow-amber-500/30'
-                          : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
-                      }`}
-                    >
-                      <ShieldCheck className="w-4 h-4" />
-                    </div>
-
-                    <div>
-                      <h3 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
-                        Platform Admin
-                      </h3>
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 mt-0.5 inline-block">
-                        Audit &amp; Govern
-                      </span>
-                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
-                        Supabase RLS health check, quarantine telemetry, and SaaS monetization MRR audit.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-800/80 mt-3 text-[10px] text-amber-400 font-medium">
-                    Navbar: Dashboard &bull; Supabase RLS &bull; Quarantine
-                  </div>
+          {/* Optional Display Name Personalization Card */}
+          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm max-w-xl mx-auto">
+            <form onSubmit={handleSaveName} className="flex flex-col sm:flex-row items-center gap-2">
+              <div className="relative flex-1 w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                  <User className="w-4 h-4" />
                 </div>
+                <input
+                  type="text"
+                  value={tempName}
+                  onChange={e => setTempName(e.target.value)}
+                  placeholder="Personalize greeting with your name (optional)"
+                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
               </div>
-            </div>
-
-            {/* Step 2: Enter Name & Quick Presets */}
-            <form onSubmit={handleLoginSubmit} className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                    Step 2: Enter Your Name / Identity
-                  </label>
-                  <span className="text-[11px] text-slate-400">
-                    Type any custom name or pick a preset persona:
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={enteredName}
-                    onChange={e => setEnteredName(e.target.value)}
-                    placeholder="Enter your name (e.g. Sarah Chen)"
-                    className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 shadow-inner"
-                  />
-                </div>
-
-                {/* Quick Presets Pills */}
-                <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                  <span className="text-[11px] text-slate-500 font-medium">Quick Persona:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedRole('job_seeker');
-                      setEnteredName('Sarah Chen');
-                    }}
-                    className={`px-2.5 py-1 rounded-lg border transition-all ${
-                      enteredName === 'Sarah Chen' && selectedRole === 'job_seeker'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-semibold'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Sarah Chen (Seeker)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedRole('college_student');
-                      setEnteredName('Alex Patel');
-                    }}
-                    className={`px-2.5 py-1 rounded-lg border transition-all ${
-                      enteredName === 'Alex Patel' && selectedRole === 'college_student'
-                        ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-semibold'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Alex Patel (Student)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedRole('company_recruiter');
-                      setEnteredName('Marcus Vance');
-                    }}
-                    className={`px-2.5 py-1 rounded-lg border transition-all ${
-                      enteredName === 'Marcus Vance' && selectedRole === 'company_recruiter'
-                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-semibold'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Marcus Vance (Recruiter)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedRole('admin');
-                      setEnteredName('Alexa Reynolds');
-                    }}
-                    className={`px-2.5 py-1 rounded-lg border transition-all ${
-                      enteredName === 'Alexa Reynolds' && selectedRole === 'admin'
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-semibold'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Alexa Reynolds (Admin)
-                  </button>
-                </div>
-              </div>
-
-              {/* Workspace Portal Entry */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center gap-2.5 border-t border-slate-800/80">
-                <button
-                  type="button"
-                  id="landing-portal-login-btn"
-                  onClick={handleOpenLogin}
-                  className="w-full py-2.5 px-3.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Sign In / Choose Portal</span>
-                </button>
-              </div>
-
-              {/* Step 3: Submit Button */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  id="sign-in-submit-btn"
-                  className={`w-full py-3.5 px-6 rounded-2xl text-sm font-bold text-white transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer ${
-                    selectedRole === 'college_student'
-                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/25 ring-1 ring-blue-400/40'
-                      : selectedRole === 'company_recruiter'
-                      ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-500 hover:to-pink-500 shadow-purple-500/25 ring-1 ring-purple-400/40'
-                      : selectedRole === 'admin'
-                      ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 hover:from-amber-500 hover:to-orange-500 shadow-amber-500/25 ring-1 ring-amber-400/40'
-                      : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/25 ring-1 ring-emerald-400/40'
-                  }`}
-                >
-                  <span>
-                    Sign In as {rolePresets[selectedRole].title} ({enteredName.trim() || 'New User'})
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition-colors shrink-0"
+              >
+                Save Name
+              </button>
             </form>
           </div>
         </section>
@@ -862,7 +537,7 @@ export default function LandingPage() {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>CareerPilot v2 Monetization</span>
+              <span>CareerPilot v2 Access</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
               Fair, Predictable SaaS Pricing for Every Career Stage
@@ -890,19 +565,27 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-indigo-400" />
             <span className="font-semibold text-slate-300">CareerPilot v2</span>
-            <span>&bull; Autonomous Agent SaaS Upgrade</span>
+            <span>&bull; Open Public Access</span>
           </div>
           <div className="flex flex-wrap items-center gap-4 text-slate-400">
-            <Link href="/pricing" className="text-indigo-400 hover:text-indigo-300 hover:underline">
+            <Link href="/job-seeker" className="text-emerald-400 hover:text-emerald-300 hover:underline">
+              Jobs
+            </Link>
+            <span>&bull;</span>
+            <Link href="/learn" className="text-cyan-400 hover:text-cyan-300 hover:underline">
+              Learning Roadmaps
+            </Link>
+            <span>&bull;</span>
+            <Link href="/internships" className="text-blue-400 hover:text-blue-300 hover:underline">
+              Internships
+            </Link>
+            <span>&bull;</span>
+            <Link href="/compare" className="text-indigo-400 hover:text-indigo-300 hover:underline">
+              Career Paths
+            </Link>
+            <span>&bull;</span>
+            <Link href="/pricing" className="text-slate-400 hover:text-slate-300 hover:underline">
               Pricing Plans
-            </Link>
-            <span>&bull;</span>
-            <Link href="/internships" className="text-cyan-400 hover:text-cyan-300 hover:underline">
-              Internship Board
-            </Link>
-            <span>&bull;</span>
-            <Link href="/compare" className="text-slate-400 hover:text-slate-300 hover:underline">
-              Job Comparison (Bug Demo)
             </Link>
           </div>
         </div>

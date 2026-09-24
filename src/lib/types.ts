@@ -129,16 +129,10 @@ export interface SkillRoadmapDomain {
   futureProjections: FutureDemandData[];
 }
 
-export interface UserSession {
-  id: string; // User ID / UUID
-  name: string;
-  email?: string;
-  phone?: string;
-  image?: string;
-  role: UserRole;
-  provider: 'session' | 'credential' | 'supabase';
-  expiresAt?: number;
-  preferredLanguage?: string;
+export interface VisitorPreferences {
+  language: string;
+  displayName?: string;
+  selectedRole?: UserRole;
 }
 
 export interface CandidateProfile {

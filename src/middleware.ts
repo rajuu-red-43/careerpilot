@@ -1,23 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-// Protected application routes requiring authentication
-const PROTECTED_PREFIXES = [
-  '/job-seeker',
-  '/student',
-  '/recruiter',
-  '/admin',
-  '/applications',
-  '/compare',
-  '/internships',
-];
-
+/**
+ * CareerPilot v2 Open Visitor Access Middleware
+ * All routes are directly accessible to public visitors without authentication.
+ * Any legacy requests to /login are seamlessly redirected to the home page.
+ */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Allow public assets, Next.js internals, and API routes
+  // 1. Allow public static assets and Next.js internals
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
     pathname.startsWith('/static') ||
     pathname.includes('.') ||
     pathname === '/favicon.ico'
@@ -25,34 +18,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie = request.cookies.get('careerpilot_session')?.value;
-  const hasValidSession = Boolean(sessionCookie && sessionCookie.includes('.'));
-
-  // 2. Protect authenticated dashboard routes
-  const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix));
-
-  if (isProtected && !hasValidSession) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // 3. If user is already authenticated and visits /login, redirect to their role dashboard
-  if (pathname === '/login' && sessionCookie && hasValidSession) {
-    try {
-      const [encodedPayload] = sessionCookie.split('.');
-      const payloadStr = atob(encodedPayload.replace(/-/g, '+').replace(/_/g, '/'));
-      const parsed = JSON.parse(payloadStr);
-
-      let target = '/job-seeker';
-      if (parsed.role === 'college_student') target = '/student';
-      else if (parsed.role === 'company_recruiter') target = '/recruiter';
-      else if (parsed.role === 'admin') target = '/admin';
-
-      return NextResponse.redirect(new URL(target, request.url));
-    } catch {
-      // If parsing fails, allow viewing login page
-    }
+  // 2. Redirect legacy /login requests directly to home
+  if (pathname === '/login' || pathname.startsWith('/login/')) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
@@ -61,11 +29,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files
+     * Match all request paths except for static files & images
      */
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],

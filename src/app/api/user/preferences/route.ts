@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { AUTH_CONFIG, verifySession, signSession } from '../../../../lib/auth';
 import { isSupportedLanguage, getLanguage, DEFAULT_LANGUAGE } from '../../../../i18n/languages';
-import { supabase } from '../../../../lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-function getSessionFromRequest(request: Request) {
+const LANGUAGE_COOKIE_NAME = 'careerpilot_language';
+
+function getLanguageFromCookies(request: Request): string {
   const cookieHeader = request.headers.get('cookie') || '';
   const cookies = Object.fromEntries(
     cookieHeader.split('; ').map(c => {
@@ -13,31 +13,22 @@ function getSessionFromRequest(request: Request) {
       return [k, decodeURIComponent(v.join('='))];
     })
   );
-  const sessionToken = cookies[AUTH_CONFIG.sessionCookieName];
-  return verifySession(sessionToken);
+  const code = cookies[LANGUAGE_COOKIE_NAME];
+  if (code && isSupportedLanguage(code)) {
+    return code;
+  }
+  return DEFAULT_LANGUAGE.code;
 }
 
 /**
  * GET /api/user/preferences
- * Returns the authenticated user's preferred language.
+ * Returns the visitor's preferred language without requiring authentication.
  */
 export async function GET(request: Request) {
-  const session = getSessionFromRequest(request);
-
-  if (!session) {
-    return NextResponse.json(
-      { error: 'Unauthorized. Authentication required to access user preferences.' },
-      { status: 401 }
-    );
-  }
-
-  // Check database first, fallback to session, then default 'en'
-  const dbLang = supabase.getUserLanguagePreference(session.id);
-  const preferredLanguage = dbLang || session.preferredLanguage || DEFAULT_LANGUAGE.code;
+  const preferredLanguage = getLanguageFromCookies(request);
 
   return NextResponse.json({
     success: true,
-    userId: session.id,
     preferredLanguage,
     languageMeta: getLanguage(preferredLanguage),
   });
@@ -45,19 +36,9 @@ export async function GET(request: Request) {
 
 /**
  * PATCH /api/user/preferences
- * Securely updates the authenticated user's preferred language.
- * Identity is derived exclusively from the server-side session.
+ * Updates the visitor's preferred language and sets the client-accessible cookie.
  */
 export async function PATCH(request: Request) {
-  const session = getSessionFromRequest(request);
-
-  if (!session) {
-    return NextResponse.json(
-      { error: 'Unauthorized. You must be signed in to modify preferences.' },
-      { status: 401 }
-    );
-  }
-
   try {
     const body = await request.json();
     const candidateLang = body?.preferredLanguage;
@@ -71,7 +52,6 @@ export async function PATCH(request: Request) {
 
     const cleanCode = candidateLang.trim().toLowerCase();
 
-    // Validate against centralized language registry
     if (!isSupportedLanguage(cleanCode)) {
       return NextResponse.json(
         {
@@ -81,30 +61,19 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // 1. Persist to database
-    supabase.setUserLanguagePreference(session.id, cleanCode);
-
-    // 2. Re-sign session cookie with updated preference
-    const updatedSession = {
-      ...session,
-      preferredLanguage: cleanCode,
-    };
-    const signedToken = signSession(updatedSession);
+    const langMeta = getLanguage(cleanCode);
 
     const response = NextResponse.json({
       success: true,
-      message: `Preferred language updated to ${getLanguage(cleanCode).englishName} (${cleanCode})`,
+      message: `Preferred language updated to ${langMeta.englishName} (${cleanCode})`,
       preferredLanguage: cleanCode,
-      languageMeta: getLanguage(cleanCode),
+      languageMeta: langMeta,
     });
 
-    // 3. Set updated HttpOnly session cookie
-    response.cookies.set(AUTH_CONFIG.sessionCookieName, signedToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+    response.cookies.set(LANGUAGE_COOKIE_NAME, cleanCode, {
       path: '/',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: 365 * 24 * 60 * 60, // 1 year
+      sameSite: 'lax',
     });
 
     return response;
