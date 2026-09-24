@@ -22,6 +22,7 @@ import {
 import { mockJobs as defaultJobs } from '../data/mockJobs';
 import { mockInternships } from '../data/mockInternships';
 import { supabase } from '../lib/supabase';
+import { languageService } from '../lib/languageService';
 
 interface AppContextType {
   role: UserRole;
@@ -175,6 +176,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               email: data.user.email || baseProfile.email,
               image: data.user.image,
               googleId: data.user.id,
+              preferredLanguage: data.user.preferredLanguage || 'en',
             });
 
             try {
@@ -254,6 +256,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         email: prev?.email || base.email,
         image: prev?.image,
         googleId: prev?.googleId,
+        preferredLanguage: prev?.preferredLanguage,
       }));
     }
   }, [role, userName]);
@@ -546,22 +549,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (mentionsProblem) clarityScore += 4;
     const finalScore = Math.round((clarityScore * 0.35 + technicalDepthScore * 0.35 + impactScore * 0.3));
 
+    const userLang = profile.preferredLanguage || 'en';
+    const localized = languageService.getLocalizedPitchFeedback(
+      userLang,
+      Boolean(mentionsMetric),
+      Boolean(mentionsTech)
+    );
+
     const result: PitchEvaluationResult = {
       score: finalScore,
       clarityScore: Math.round(clarityScore),
       technicalDepthScore: Math.round(technicalDepthScore),
       impactScore: Math.round(impactScore),
-      feedback: mentionsMetric
-        ? 'Outstanding quantifiable outcome framing! You clearly conveyed technical architecture and measurable performance impact in under 60 seconds.'
-        : 'Good technical overview. Adding measurable results (e.g. % speedup, user volume, latency numbers) will boost recruiter interview conversion.',
-      strengths: [
-        'Direct problem-solution articulation',
-        mentionsTech ? 'Strong tech stack keyword fluency' : 'Accessible explanation',
-        'Paced effectively within the 60-second window',
-      ],
-      improvementSuggestions: mentionsMetric
-        ? ['Mention edge-case handling or failure mode resilience']
-        : ['Quantify outcomes (e.g. latency reduced by X%, users supported)'],
+      feedback: localized.feedback,
+      strengths: localized.strengths,
+      improvementSuggestions: localized.improvementSuggestions,
     };
 
     // Update project with pitch score

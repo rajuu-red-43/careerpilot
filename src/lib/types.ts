@@ -137,6 +137,7 @@ export interface UserSession {
   role: UserRole;
   provider: 'google' | 'credential';
   expiresAt?: number;
+  preferredLanguage?: string;
 }
 
 export interface CandidateProfile {
@@ -156,6 +157,7 @@ export interface CandidateProfile {
   trialDaysLeft?: number;
   image?: string;
   googleId?: string;
+  preferredLanguage?: string;
 }
 
 export interface AutomationLog {

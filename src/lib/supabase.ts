@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   is_subscribed BOOLEAN DEFAULT false,
   subscription_tier TEXT DEFAULT 'student_free',
   trial_days_remaining INTEGER DEFAULT 90,
+  preferred_language TEXT DEFAULT 'en',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -157,6 +158,19 @@ export class CareerPilotSupabaseClient {
         projectRef: SUPABASE_CONFIG.projectRef,
       };
     }
+  }
+
+  // Get user preferred language (defaults to 'en')
+  public getUserLanguagePreference(userId: string): string {
+    const preferences = this.getTable<Record<string, string>>('user_preferences', {});
+    return preferences[userId] || 'en';
+  }
+
+  // Set user preferred language
+  public setUserLanguagePreference(userId: string, langCode: string): void {
+    const preferences = this.getTable<Record<string, string>>('user_preferences', {});
+    preferences[userId] = langCode;
+    this.setTable('user_preferences', preferences);
   }
 }
 

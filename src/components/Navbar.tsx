@@ -25,11 +25,15 @@ import {
   BookOpen,
   ShieldAlert,
   Clock,
+  Globe,
+  Settings,
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { currentLanguage, setShowOnboardingModal, t } = useLanguage();
   const {
     role,
     isLoggedIn,
@@ -372,8 +376,8 @@ export default function Navbar() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:border-rose-500/50 transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5 text-rose-400" />
-                  <span className="hidden sm:inline">Logout / Switch Role</span>
-                  <span className="sm:hidden">Logout</span>
+                  <span className="hidden sm:inline">{t('common.logout', 'Logout / Switch Role')}</span>
+                  <span className="sm:hidden">{t('common.logoutShort', 'Logout')}</span>
                 </button>
               </>
             ) : (
@@ -384,7 +388,7 @@ export default function Navbar() {
                   className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 transition-colors"
                 >
                   <DollarSign className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Pricing</span>
+                  <span>{t('nav.pricing', 'Pricing')}</span>
                 </Link>
                 <Link
                   href="/login"
@@ -392,10 +396,39 @@ export default function Navbar() {
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-500/20 active:scale-95"
                 >
                   <LogIn className="w-3.5 h-3.5" />
-                  <span>Sign In</span>
+                  <span>{t('nav.signIn', 'Sign In')}</span>
                 </Link>
               </div>
             )}
+
+            {/* Global Language Switcher Chip */}
+            <button
+              type="button"
+              id="navbar-language-btn"
+              onClick={() => setShowOnboardingModal(true)}
+              title="Change preferred language / भाषा"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-850 text-slate-200 transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <Globe className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="font-bold text-white">{currentLanguage.nativeName}</span>
+              <span className="hidden xl:inline text-slate-400 font-normal text-[11px]">
+                ({currentLanguage.englishName})
+              </span>
+            </button>
+
+            {/* Settings Link */}
+            <Link
+              href="/settings"
+              id="navbar-settings-btn"
+              title={t('common.settings', 'Settings')}
+              className={`p-2 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center cursor-pointer ${
+                pathname === '/settings'
+                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-500/20'
+                  : 'bg-slate-900/90 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </Link>
 
             {/* n8n Automation status badge */}
             <div
@@ -406,8 +439,8 @@ export default function Navbar() {
               }`}
             >
               <Cpu className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
-              <span className="hidden xl:inline">n8n Agent:</span>
-              <span>{automationActive ? 'Running' : 'Paused'}</span>
+              <span className="hidden xl:inline">{t('nav.agentStatus', 'n8n Agent')}:</span>
+              <span>{automationActive ? t('common.active', 'Running') : 'Paused'}</span>
             </div>
 
             {/* Judge Mode Button */}
@@ -416,7 +449,7 @@ export default function Navbar() {
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition-all shadow-sm group cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-12 transition-transform" />
-              <span className="hidden sm:inline">Judge Guide</span>
+              <span className="hidden sm:inline">{t('nav.judgeGuide', 'Judge Guide')}</span>
               <HelpCircle className="w-3 h-3 text-amber-400/80" />
             </button>
           </div>

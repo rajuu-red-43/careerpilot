@@ -27,6 +27,7 @@ export async function GET(request: Request) {
       image: session.image || null,
       role: session.role,
       provider: session.provider,
+      preferredLanguage: session.preferredLanguage || 'en',
     },
   });
 }
