@@ -21,10 +21,12 @@ export const SUPABASE_SCHEMA_SQL = `
 -- 1. Profiles Table
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
+  google_id TEXT UNIQUE,
+  user_id UUID,
   name TEXT NOT NULL,
   email TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('college_student', 'job_seeker', 'company_recruiter', 'admin')),
+  image TEXT,
+  role TEXT NOT NULL DEFAULT 'job_seeker' CHECK (role IN ('college_student', 'job_seeker', 'company_recruiter', 'admin')),
   skills TEXT[] DEFAULT '{}',
   data_health_score INTEGER DEFAULT 90,
   interview_readiness_score INTEGER DEFAULT 75,
